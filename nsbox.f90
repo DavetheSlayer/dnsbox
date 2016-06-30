@@ -8,41 +8,45 @@
 program nsbox
     
     use rhs
+    use io
     
+    ! Initialize:
     call initMpi()
     call var_init()
+    call io_init()
     
     time(1) = 0.0d0
     factor = sqrt(3.0d0)
 
-    ! initial condition from an analytical solution:
-    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+!    ! initial condition from an analytical solution:
+!    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
             
-                u(i, j, k) = -0.5 * (factor * cos(x(i)) * sin(y(j)) * sin(z(k)) &
-                                     + sin(x(i)) * cos(y(j)) * cos(z(k))) &
-                                     * exp(- (factor ** 2) * time(1) / Re)                                     
+!                u(i, j, k) = -0.5 * (factor * cos(x(i)) * sin(y(j)) * sin(z(k)) &
+!                                     + sin(x(i)) * cos(y(j)) * cos(z(k))) &
+!                                     * exp(- (factor ** 2) * time(1) / Re)                                     
                 
-                v(i,j,k) = 0.5 * (factor * sin(x(i)) * cos(y(j)) * sin(z(k)) &
-						          - cos(x(i)) * sin(y(j)) * cos(z(k))) &
-                                  * exp(-(factor**2)*time(1)/Re)
+!                v(i,j,k) = 0.5 * (factor * sin(x(i)) * cos(y(j)) * sin(z(k)) &
+!						          - cos(x(i)) * sin(y(j)) * cos(z(k))) &
+!                                  * exp(-(factor**2)*time(1)/Re)
                 
-                w(i,j,k) = cos(x(i)) * cos(y(j)) * sin(z(k)) & 
-                           * exp(-(factor**2)*time(1)/Re)                 
+!                w(i,j,k) = cos(x(i)) * cos(y(j)) * sin(z(k)) & 
+!                           * exp(-(factor**2)*time(1)/Re)                 
                 
-    end do; end do; end do
-
+!    end do; end do; end do
+    
+    call io_loadState('state0000.h5')
     
     call p3dfft_ftran_r2c (u, uhat, 'fft')
     call p3dfft_ftran_r2c (v, vhat, 'fft')
     call p3dfft_ftran_r2c (w, what, 'fft')
     
-!    ! test output:
-!    if (nproc .eq. 1) then
-!        ! print *, kz(:)
-!        print *, fstart(1), fend(1), fstart(2), fend(2), fstart(3), fend(3)
-!        print *, ux(1, 1, :)
+    ! test output:
+    if (nproc .eq. 1) then
+        ! print *, kz(:)
+        print *, fstart(1), fend(1), fstart(2), fend(2), fstart(3), fend(3)
+        print *, ux(1, 1, :)
         
-!    end if
+    end if
     
     ! Derivative of u with respect to x, y, z:
     do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
@@ -114,7 +118,9 @@ program nsbox
         print *, 'Starting time-stepping'
     endif
     
+    call io_saveState()
     do n = 1, Nt
+    
         ! fixed point
         do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
                     
@@ -248,7 +254,11 @@ program nsbox
         if (proc_id.eq.0) then
             print *, 'time', n * dt
         end if
-    
+        
+        if(modulo(n,iSaveRate1)==0) then
+            call io_saveState()
+        end if
+        
     ! omegax:
     do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
                 
@@ -313,6 +323,7 @@ program nsbox
 	end if
     
     ! Finalize
+    call h5close_f(io_error)
     call p3dfft_clean
     call MPI_FINALIZE (ierr)
                     
