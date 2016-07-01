@@ -27,12 +27,15 @@
     integer(hsize_t), dimension(3)  :: io_stride
     integer(hsize_t), dimension(3)  :: io_block
     
+    integer,     private  :: io_Ekin 
+    
 contains
     
     subroutine io_init()
+        character(10), save :: ss = 'unknown', aa = 'sequential'
         ! Initialize input/output
         io_iSaveCount1 = 0
-        io_iSaveCount2 = 0
+        io_iSaveCount2 = 0        
         !
         ! Initialize FORTRAN predefined datatypes
         !
@@ -62,13 +65,25 @@ contains
         io_block(1) = io_chunk_dims(1)
         io_block(2) = io_chunk_dims(2)
         io_block(3) = io_chunk_dims(3)
-                
+        
+        io_Ekin=20
         !**************************!
+        ! Generate .dat files      !
         !**************************!
-        ! Generate .dat files here !
-        !**************************!
-        !**************************!
+        if(proc_id.eq.0) then
+            open(io_Ekin, status=ss, access=aa, file='Ekin.dat')
+            aa = 'append'
+        end if 
+        
     end subroutine io_init
+    
+    subroutine io_finalize()
+        ! Close files
+    
+        if(proc_id.eq.0) then
+            close(io_KE)
+        end if     
+    end subroutine io_finalize
     
     subroutine io_saveState()
         !
@@ -424,6 +439,37 @@ contains
         call h5fclose_f(io_file_id, io_error)
         
     end subroutine io_loadState
+
+    subroutine io_saveStats()
+        !
+        ! Measures some statistics and saves into text files
+        !
+        myEkin = 0d0
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+            
+            myEkin = myEkin + conjg(uhat(i, j, k)) * uhat(i, j, k)
+            myEkin = myEkin + conjg(vhat(i, j, k)) * vhat(i, j, k)
+            myEkin = myEkin + conjg(what(i, j, k)) * what(i, j, k)
+            
+        end do; end do; end do   
+        
+        myEkin = myEkin * scalemodes
+        call mpi_allreduce(myEkin, Ekin, 1, mpi_double_precision, &
+                           mpi_sum, mpi_comm_world, ierr)
+        
+        myCourantMax = maxval(abs(u)) * dt / (Lx / real(Nx, kind(0d0))) &
+                     + maxval(abs(v)) * dt / (Ly / real(Ny, kind(0d0))) &
+                     + maxval(abs(w)) * dt / (Lz / real(Nz, kind(0d0)))
+
+        call mpi_allreduce(myCourantMax, CourantMax, 1, mpi_double_precision, &
+                           mpi_max, mpi_comm_world, ierr)                     
+
+        if(proc_id.eq.0) then
+!            print *, ' myEkin =  ', myEkin
+            write(io_Ekin,'(3e20.12)')  time(n+1), Ekin, CourantMax
+        end if 
+    
+    end subroutine
 
 !**************************************************************************
  end module io

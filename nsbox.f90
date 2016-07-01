@@ -18,23 +18,23 @@ program nsbox
     time(1) = 0.0d0
     factor = sqrt(3.0d0)
 
-!    ! initial condition from an analytical solution:
-!    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+    ! initial condition from an analytical solution:
+    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
             
-!                u(i, j, k) = -0.5 * (factor * cos(x(i)) * sin(y(j)) * sin(z(k)) &
-!                                     + sin(x(i)) * cos(y(j)) * cos(z(k))) &
-!                                     * exp(- (factor ** 2) * time(1) / Re)                                     
+                u(i, j, k) = -0.5 * (factor * cos(x(i)) * sin(y(j)) * sin(z(k)) &
+                                     + sin(x(i)) * cos(y(j)) * cos(z(k))) &
+                                     * exp(- (factor ** 2) * time(1) / Re)                                     
                 
-!                v(i,j,k) = 0.5 * (factor * sin(x(i)) * cos(y(j)) * sin(z(k)) &
-!						          - cos(x(i)) * sin(y(j)) * cos(z(k))) &
-!                                  * exp(-(factor**2)*time(1)/Re)
+                v(i,j,k) = 0.5 * (factor * sin(x(i)) * cos(y(j)) * sin(z(k)) &
+						          - cos(x(i)) * sin(y(j)) * cos(z(k))) &
+                                  * exp(-(factor**2)*time(1)/Re)
                 
-!                w(i,j,k) = cos(x(i)) * cos(y(j)) * sin(z(k)) & 
-!                           * exp(-(factor**2)*time(1)/Re)                 
+                w(i,j,k) = 1.0 * cos(x(i)) * cos(y(j)) * sin(z(k)) & 
+                           * exp(-(factor**2)*time(1)/Re)                 
                 
-!    end do; end do; end do
+    end do; end do; end do
     
-    call io_loadState('state0000.h5')
+!    call io_loadState('state0000.h5')
     
     call p3dfft_ftran_r2c (u, uhat, 'fft')
     call p3dfft_ftran_r2c (v, vhat, 'fft')
@@ -153,21 +153,21 @@ program nsbox
                 
                 uhat(i, j, k) = (rhsuhatfix(i, j, k) - nonlinuhat(i, j, k) &
                                  - kx(k) * phat(i, j, k)) &
-                                / (dtInv - (0.5d0 * ReInv) &
+                                / (dtInv - Q - (0.5d0 * ReInv) &
                                   * (kx(k) * kx(k) &
                                      + ky(j) * ky(j) &
                                      + kz(i) * kz(i)))
                 
                 vhat(i, j, k) = (rhsvhatfix(i, j, k) - nonlinvhat(i, j, k) &
                                  - ky(j) * phat(i, j, k)) &
-                                / (dtInv - (0.5d0 * ReInv) &
+                                / (dtInv - Q - (0.5d0 * ReInv) &
                                   * (kx(k) * kx(k) &
                                      + ky(j) * ky(j) &
                                      + kz(i) * kz(i)))
                                            
                 what(i, j, k) = (rhswhatfix(i, j, k) - nonlinwhat(i, j, k) &
                                  - kz(i) * phat(i, j, k)) &
-                                / (dtInv - (0.5d0 * ReInv) &
+                                / (dtInv - Q - (0.5d0 * ReInv) &
                                   * (kx(k) * kx(k) &
                                      + ky(j) * ky(j) &
                                      + kz(i) * kz(i)))
@@ -259,6 +259,10 @@ program nsbox
             call io_saveState()
         end if
         
+        if(modulo(n,iSaveRate2)==0) then
+            call io_saveStats()
+        end if
+        
     ! omegax:
     do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
                 
@@ -325,7 +329,9 @@ program nsbox
     ! Finalize
     call h5close_f(io_error)
     call p3dfft_clean
+    call io_finalize()
     call MPI_FINALIZE (ierr)
+    
                     
 contains
 

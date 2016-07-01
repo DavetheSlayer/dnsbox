@@ -39,6 +39,13 @@ module variables
     logical iex
 	integer memsize(3)
     
+    !measurement variables
+    real(kind = 8) :: Ekin        !total kinetic energy
+    real(kind = 8) :: myEkin      !kinetic energy on a cpu
+    real(kind = 8) :: CourantMax  !Maximum Courant number for time-step control 
+    real(kind = 8) :: myCourantMax  !Maximum Courant number for time-step 
+                                    !control 
+    
     contains
     
     subroutine var_init()

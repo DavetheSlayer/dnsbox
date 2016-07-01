@@ -10,20 +10,20 @@ module rhs
         
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
                             
-            rhsuhatfix(i, j, k) = (dtInv + (0.5 * ReInv) &
-                                * (kx(k) * kx(k) &
-                                 + ky(j) * ky(j) &
-                                 + kz(i) * kz(i))) * uhat(i, j, k)
+            rhsuhatfix(i, j, k) = (Q + dtInv + (0.5 * ReInv) &
+                                  * (kx(k) * kx(k) &
+                                   + ky(j) * ky(j) &
+                                   + kz(i) * kz(i))) * uhat(i, j, k)
             
-            rhsvhatfix(i, j, k) = (dtInv + (0.5 * ReInv) &
-                                * (kx(k) * kx(k) &
-                                 + ky(j) * ky(j) &
-                                 + kz(i) * kz(i))) * vhat(i, j, k)
+            rhsvhatfix(i, j, k) = (Q + dtInv + (0.5 * ReInv) &
+                                  * (kx(k) * kx(k) &
+                                   + ky(j) * ky(j) &
+                                   + kz(i) * kz(i))) * vhat(i, j, k)
             
-            rhswhatfix(i, j, k) = (dtInv + (0.5 * ReInv) &
-                                * (kx(k) * kx(k) &
-                                 + ky(j) * ky(j) &
-                                 + kz(i) * kz(i))) * what(i, j, k)
+            rhswhatfix(i, j, k) = (Q + dtInv + (0.5 * ReInv) &
+                                  * (kx(k) * kx(k) &
+                                   + ky(j) * ky(j) &
+                                   + kz(i) * kz(i))) * what(i, j, k)
                                  
         end do; end do; end do        
             
