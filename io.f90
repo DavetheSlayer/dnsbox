@@ -447,13 +447,13 @@ contains
         myEkin = 0d0
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
             
-            myEkin = myEkin + conjg(uhat(i, j, k)) * uhat(i, j, k)
-            myEkin = myEkin + conjg(vhat(i, j, k)) * vhat(i, j, k)
-            myEkin = myEkin + conjg(what(i, j, k)) * what(i, j, k)
+            myEkin = myEkin + real(conjg(uhat(i, j, k)) * uhat(i, j, k))
+            myEkin = myEkin + real(conjg(vhat(i, j, k)) * vhat(i, j, k))
+            myEkin = myEkin + real(conjg(what(i, j, k)) * what(i, j, k))
             
         end do; end do; end do   
         
-        myEkin = myEkin * scalemodes
+        myEkin = myEkin * scalemodessquare
         call mpi_allreduce(myEkin, Ekin, 1, mpi_double_precision, &
                            mpi_sum, mpi_comm_world, ierr)
         

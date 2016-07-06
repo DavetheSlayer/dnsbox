@@ -12,30 +12,38 @@ module variables
                                                           ux, uy, uz, &
                                                           vx, vy, vz, &
                                                           wx, wy, wz, &
-                                                   uold, uxold, uyold, uzold, &
-                                                   vold, vxold, vyold, vzold, &
-                                                   wold, wxold, wyold, wzold, &
-                                                   utemp, vtemp, wtemp, temp_r
+!                                                          uold, vold, wold, &
+                                                          utemp, vtemp, wtemp,& 
+                                                          temp_r 
     complex(kind=8), dimension(:), allocatable      :: kx, ky, kz
     complex(p3dfft_type), dimension(:, :, :), allocatable :: uhat, vhat, what,&
-                                                             rhsuhatfix, &
-                                                             rhsvhatfix, &
-                                                             rhswhatfix, &
+                                                             uhattemp, &
+                                                             vhattemp, &
+                                                             whattemp, &
+                                                             uhatold, &
+                                                             vhatold, &
+                                                             whatold, &
                                                              nonlinuhat, &
                                                              nonlinvhat, &
                                                              nonlinwhat, &
-                                                             phat, temp_c
-    real(p3dfft_type), dimension(:,:,:), allocatable    :: realtemp
-
+!                                                             rhsuhat, &
+!                                                             rhsvhat, &
+!                                                             rhswhat, &
+                                                             temp_c, &
+                                                             intFact, &
+                                                             phat
+    ! real(p3dfft_type), dimension(:,:,:), allocatable    :: realtemp
+    ! extraneous variables, for easy code reading:
+    real(kind = 8) :: Lx, Ly, Lz
         
     !counters and logicals:
-    integer(kind=4) :: count, iol, i, j, k, n, ind, t, AllocateStatus
+    integer(kind=4) :: ind, iol, i, j, k, n, t, AllocateStatus
   
     !parallelization variables:
-    integer ierr, nu, ndim, dims(2), nproc, proc_id
-    integer istart(3), iend(3), isize(3)
-    integer fstart(3), fend(3), fsize(3)
-    integer iproc, jproc, nxc, nyc, nzc
+    integer ierr, nup, ndim, dims(2), nproc, proc_id ! MPI vars
+    integer istart(3), iend(3), isize(3)             ! conf. space indices
+    integer fstart(3), fend(3), fsize(3)             ! Fourier space indices
+    integer iproc, jproc, nxc, nyc, nzc              ! double-paralellization
     logical iex
 	integer memsize(3)
     
@@ -45,11 +53,22 @@ module variables
     real(kind = 8) :: CourantMax  !Maximum Courant number for time-step control 
     real(kind = 8) :: myCourantMax  !Maximum Courant number for time-step 
                                     !control 
+    real(kind = 8) :: myuSum      !sum of values on single cpu
+    real(kind = 8) :: uSum        !sum all
+    real(kind = 8) :: myvSum      !sum of values on single cpu
+    real(kind = 8) :: vSum        !sum all
+    real(kind = 8) :: mywSum      !sum of values on single cpu
+    real(kind = 8) :: wSum        !sum all
     
+     
     contains
     
     subroutine var_init()
-    
+        
+        Lx = 2 * pi / alpha_x
+        Ly = 2 * pi / alpha_y
+        Lz = 2 * pi / alpha_z
+        
         !1D decomposition:
         ndim = 1
         dims(1) = 1
@@ -100,34 +119,31 @@ module variables
                   wx(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   wy(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   wz(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  uold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  vold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  wold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  uxold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  uyold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  uzold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  vxold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  vyold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  vzold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  wxold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  wyold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  wzold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+!                  uold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+!                  vold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+!                  wold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   utemp(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   vtemp(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   wtemp(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   temp_r(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
-                  realtemp(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   uhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   vhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   what(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-                  rhsuhatfix(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-                  rhsvhatfix(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-                  rhswhatfix(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  uhatold(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  vhatold(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  whatold(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  uhattemp(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  vhattemp(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  whattemp(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+!                  rhsuhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+!                  rhsvhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+!                  rhswhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinuhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinvhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinwhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-                  phat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   temp_c(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  intFact(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  phat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   stat=AllocateStatus)
                     
         if(AllocateStatus .ne. 0) then
@@ -141,7 +157,7 @@ module variables
         
         ! Fourier frequencies in x-direction
         do i = 1, Nx/2 + 1
-            kx(i) = cmplx(0.0d0, 1.0d0) * real(i - 1, kind(0d0)) / Lx
+            kx(i) = cmplx(0.0d0, 1.0d0) * real(i - 1, kind(0d0)) * alpha_x
         end do
         kx(1 + Nx/2) = 0.0d0
         
@@ -151,13 +167,13 @@ module variables
 
         ind = 1
         do i = -Nx/2, Nx/2 - 1
-            x(ind) = 2.0d0 * pi * real(i, kind(0d0)) * Lx / real(Nx, kind(0d0))
+            x(ind) = real(i, kind(0d0)) * Lx / real(Nx, kind(0d0))
             ind = ind + 1
         end do
         
         ! Fourier frequencies in y-direction
         do i = 1, Ny/2 + 1
-            ky(i) = cmplx(0.0d0, 1.0d0) * real(i - 1, kind(0d0)) / Ly
+            ky(i) = cmplx(0.0d0, 1.0d0) * real(i - 1, kind(0d0)) * alpha_y
         end do
         ky(1 + Ny/2) = 0.0d0
         do i = 1, Ny/2 - 1
@@ -165,13 +181,13 @@ module variables
         end do
         ind = 1
         do i = -Ny/2, Ny/2 - 1
-            y(ind) = 2.0d0 * pi * real(i, kind(0d0)) * Ly / real(Ny, kind(0d0))
+            y(ind) = real(i, kind(0d0)) * Ly / real(Ny, kind(0d0))
             ind = ind + 1
         end do
             
         ! Fourier frequencies in z-direction
         do i = 1, Nz/2 + 1
-            kz(i) = cmplx(0.0d0, 1.0d0) * real(i - 1, kind(0d0)) / Lz
+            kz(i) = cmplx(0.0d0, 1.0d0) * real(i - 1, kind(0d0)) * alpha_z
         end do
         kz(1 + Nz/2) = 0.0d0
         do i = 1, Nz/2 - 1
@@ -179,11 +195,12 @@ module variables
         end do
         ind = 1
         do i = -Nz/2, Nz/2 - 1
-            z(ind) = 2.0d0 * pi * real(i, kind(0d0)) * Lz / real(Nz, kind(0d0))
+            z(ind) = real(i, kind(0d0)) * Lz / real(Nz, kind(0d0))
             ind = ind + 1
         end do
         
-        scalemodes = 1.0d0 / real(Nx * Ny * Nz, kind(0d0))
+        scalemodes = 1.0d0 / sqrt(real(Nx * Ny * Nz, kind(0d0)))
+        scalemodessquare = 1.0d0 / real(Nx * Ny * Nz, kind(0d0))
         
         if (proc_id .eq. 0) then
             print *, 'Setup grid and Fourier frequencies'

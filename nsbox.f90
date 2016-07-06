@@ -18,27 +18,68 @@ program nsbox
     time(1) = 0.0d0
     factor = sqrt(3.0d0)
 
-    ! initial condition from an analytical solution:
+!    ! initial condition from an analytical solution:
+!    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+            
+!                u(i, j, k) = -0.5 * (factor * cos(x(i)) * sin(y(j)) * sin(z(k)) &
+!                                     + sin(x(i)) * cos(y(j)) * cos(z(k))) &
+!                                     * exp(- (factor ** 2) * time(1) / Re)                                     
+                
+!                v(i,j,k) = 0.5 * (factor * sin(x(i)) * cos(y(j)) * sin(z(k)) &
+!						          - cos(x(i)) * sin(y(j)) * cos(z(k))) &
+!                                  * exp(-(factor**2)*time(1)/Re)
+                
+!                w(i,j,k) = 1.0 * cos(x(i)) * cos(y(j)) * sin(z(k)) & 
+!                           * exp(-(factor**2)*time(1)/Re)                 
+                
+!    end do; end do; end do
+
+    ! randomly fill fields:
     do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
             
-                u(i, j, k) = -0.5 * (factor * cos(x(i)) * sin(y(j)) * sin(z(k)) &
-                                     + sin(x(i)) * cos(y(j)) * cos(z(k))) &
-                                     * exp(- (factor ** 2) * time(1) / Re)                                     
+                call random_number(u(i, j, k))
+                u(i, j, k) = u(i, j, k) - 0.5
+                myuSum = myuSum + u(i, j, k)
                 
-                v(i,j,k) = 0.5 * (factor * sin(x(i)) * cos(y(j)) * sin(z(k)) &
-						          - cos(x(i)) * sin(y(j)) * cos(z(k))) &
-                                  * exp(-(factor**2)*time(1)/Re)
-                
-                w(i,j,k) = 1.0 * cos(x(i)) * cos(y(j)) * sin(z(k)) & 
-                           * exp(-(factor**2)*time(1)/Re)                 
+                call random_number(u(i, j, k))
+                v(i, j, k) = v(i, j, k) - 0.5
+                myvSum = myvSum + u(i, j, k)
+
+                call random_number(u(i, j, k))
+                w(i, j, k) = w(i, j, k) - 0.5
+                mywSum = mywSum + u(i, j, k)
                 
     end do; end do; end do
+    
+    call mpi_allreduce(myuSum, uSum, 1, mpi_double_precision, &
+                       mpi_sum, mpi_comm_world, ierr)
+    
+    call mpi_allreduce(myvSum, vSum, 1, mpi_double_precision, &
+                       mpi_sum, mpi_comm_world, ierr)
+    
+    call mpi_allreduce(mywSum, wSum, 1, mpi_double_precision, &
+                       mpi_sum, mpi_comm_world, ierr)
+    
+    ! ensure zero-mean
+    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+
+                u(i, j, k) = (u(i, j, k) - uSum * scalemodes) * 0.1d0
+                
+                v(i, j, k) = (v(i, j, k) - vSum * scalemodes) * 0.1d0
+
+                w(i, j, k) = (w(i, j, k) - wSum * scalemodes) * 0.1d0
+                
+    end do; end do; end do
+    
+    ! Apply projection operator to ensure divergence-free field:
+    call rhsProject()    
     
 !    call io_loadState('state0000.h5')
     
     call p3dfft_ftran_r2c (u, uhat, 'fft')
     call p3dfft_ftran_r2c (v, vhat, 'fft')
     call p3dfft_ftran_r2c (w, what, 'fft')
+
     
     ! test output:
     if (nproc .eq. 1) then
@@ -89,6 +130,13 @@ program nsbox
         temp_c(i, j, k) = what(i, j, k) * kz(i) * scalemodes
     end do; end do; end do
     call p3dfft_btran_c2r (temp_c, wz, 'tff')
+
+    ! print divergence:
+    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+
+                print *, ux(i,j,k) + vy(i,j,k) + wz(i,j,k)
+                
+    end do; end do; end do
 
     ! omegax:
     do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
