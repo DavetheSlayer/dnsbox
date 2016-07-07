@@ -60,6 +60,8 @@ module variables
     real(kind = 8) :: mywSum      !sum of values on single cpu
     real(kind = 8) :: wSum        !sum all
     
+    real(kind = 8) :: kk          !|k|^2
+    real(kind = 8) :: phase       !phase for initiation
      
     contains
     

@@ -9,7 +9,7 @@ LIBS = /cluster/home/nbudanur/local2/lib/libp3dfft.a \
 	   /clusterhome/nbudanur/local2/lib/libhdf5_fortran.a \
 	   /clusterhome/nbudanur/local2/lib/libhdf5.a -lz -ldl
 	   
-SOURCES = parameters.f90 variables.f90 io.f90 rhs.f90 nsbox.f90 
+SOURCES = parameters.f90 variables.f90 io.f90 rhs.f90 dnsbox.f90 
 SOURCESRK = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxRK4.f90 
 SOURCESETDRK = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxETDRK4.f90 
 SOURCESETD = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxETD.f90 

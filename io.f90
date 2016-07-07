@@ -465,7 +465,9 @@ contains
                            mpi_max, mpi_comm_world, ierr)                     
 
         if(proc_id.eq.0) then
-!            print *, ' myEkin =  ', myEkin
+            print *, ' Saving stats  '
+            print *, 'Ekin = ', Ekin
+            print *, 'CourantMax = ', CourantMax
             write(io_Ekin,'(3e20.12)')  time(n+1), Ekin, CourantMax
         end if 
     
