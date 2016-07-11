@@ -188,16 +188,36 @@ module rhs
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1) 
             ! k -> kx - index, j -> ky - index, i -> kz - index
             
-            phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
-                                    + ky(j) * nonlinvhat(i, j, k) & 
-                                    + kz(i) * nonlinwhat(i, j, k)) & 
-                                     /  (kx(k) * kx(k) &
-                                       + ky(j) * ky(j) & 
-                                       + kz(i) * kz(i) + 0.1d0 ** 13)
-                                       
-            nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) - kx(k) * phat(i, j, k)
-            nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) - ky(j) * phat(i, j, k)
-            nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) - kz(i) * phat(i, j, k)
+            if  (abs(kx(k)) >  (real(Nx, kind=8) / 2.0d0) &
+                                 * (2.0d0 * alpha_x / 3.0d0)  &
+                .or. abs(ky(j)) >  (real(Ny, kind=8) / 2.0d0) &
+                                 * (2.0d0 * alpha_y / 3.0d0)  &
+                .or. abs(kz(i)) >  (real(Nz, kind=8) / 2.0d0) &
+                                 * (2.0d0 * alpha_z / 3.0d0)) then
+            ! 2/3 dealiasing:
+            
+                      nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                      nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                      nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)          
+                
+            else 
+            
+                phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
+                                        + ky(j) * nonlinvhat(i, j, k) & 
+                                        + kz(i) * nonlinwhat(i, j, k)) & 
+                                         /  (kx(k) * kx(k) &
+                                           + ky(j) * ky(j) & 
+                                           + kz(i) * kz(i) + 0.1d0 ** 13)
+                
+                nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
+                                      - kx(k) * phat(i, j, k)
+                nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
+                                      - ky(j) * phat(i, j, k)
+                nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
+                                      - kz(i) * phat(i, j, k)
+            
+            end if
+            
         end do; end do; end do
 
 !        if(proc_id .eq. 0) then 
@@ -227,5 +247,27 @@ module rhs
         
         
 !    end subroutine rhsAll
+
+    subroutine rhsDealias()
+    ! Set k > 2/3 k_max elements to 0
+            
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1) 
+            
+            if  (abs(kx(k)) >  (real(Nx, kind=8) / 2.0d0) &
+                             * (2.0d0 * alpha_x / 3.0d0)  &
+            .or. abs(ky(j)) >  (real(Ny, kind=8) / 2.0d0) &
+                             * (2.0d0 * alpha_y / 3.0d0)  &
+            .or. abs(kz(i)) >  (real(Nz, kind=8) / 2.0d0) &
+                             * (2.0d0 * alpha_z / 3.0d0)) then
+
+                  uhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                  vhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                  what(i, j, k) = cmplx(0.0d0, 0.0d0)          
+
+            end if
+            
+        end do; end do; end do
+        
+    end subroutine rhsDealias
     
 end module rhs

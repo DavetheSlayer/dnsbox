@@ -15,10 +15,12 @@ program nsbox
     call var_init()
     call io_init()
     
+    call io_saveInfo()
+    
     time(1) = 0.0d0
     factor = sqrt(3.0d0)
     
-    if( .true. ) then ! Set true to initiate simulation from a random field
+    if( .false. ) then ! Set true to initiate simulation from a random field
         ! Initiate fields in momentum space:
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)    
             ! skip zero modes:
@@ -48,6 +50,8 @@ program nsbox
             what(i, j, k) = 1.0d4 * sqrt(exp(-2.0d0 * kk / 1.0d0)) * exp(cmplx(0.0d0, phase)) 
         end do; end do; end do
         
+        call rhsDealias()
+        
         ! Apply projection operator to ensure divergence-free field:
         call rhsProject()    
         
@@ -63,15 +67,18 @@ program nsbox
             w(i, j, k) = w(i, j, k) * scalemodes
         end do; end do; end do            
         
-        call io_saveState()
     else
         ! Load initial state:
         call io_loadState('state0000.h5')
     end if
-        
+    
+    call io_saveState()
+            
     call p3dfft_ftran_r2c (u, uhat, 'fft')
     call p3dfft_ftran_r2c (v, vhat, 'fft')
     call p3dfft_ftran_r2c (w, what, 'fft')
+    
+    call rhsDealias()
     
     if(proc_id .eq. 0) then 
         print *, 'Starting time-stepping'
@@ -93,20 +100,12 @@ program nsbox
         what(i, j, k) = whatold(i, j, k)
         
     end do; end do; end do
-    
-!    if(proc_id .eq. 0) then 
-!        print *, 'check 1'
-!    endif    
-    
+
     call rhsIntFact() ! compute integration factor    
     do n = 1, Nt
         
         ! compute the nonlinear term for uhattemp:
         call rhsNonlinear()
-
-!    if(proc_id .eq. 0) then 
-!        print *, 'check 2'
-!    endif    
         
         ! Predictor
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
@@ -140,10 +139,6 @@ program nsbox
         
         ! compute the nonlinear term for uhattemp:
         call rhsNonlinear()
-
-!    if(proc_id .eq. 0) then 
-!        print *, 'check 3'
-!    endif    
         
         ! Corrector
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
@@ -182,6 +177,7 @@ program nsbox
         end do; end do; end do
         
         if(modulo(n,iSaveRate1)==0) then
+            call io_saveSpectrum()
             call io_saveState()
         end if
         
@@ -220,14 +216,14 @@ program nsbox
         print *, 'The error at the final timestep is ', chg
     end if
     
-	deallocate(x,y,z,time,mychg,allchg,u,v,w,ux,uy,uz,vx,vy,vz,wx,wy,wz,&
-               !uold,vold,wold,&
-               utemp,vtemp,wtemp,&
-               temp_r,kx,ky,kz,uhat,vhat,what,&
-               uhattemp,vhattemp,whattemp,&
-               uhatold,vhatold,whatold,&
-               phat,nonlinuhat,nonlinvhat,nonlinwhat,temp_c,&
-               intFact, stat=AllocateStatus)		
+	deallocate(x, y, z, time, mychg, allchg, kSpec, myEspec, Espec, &
+               u, v, w, ux, uy, uz, vx, vy, vz, wx, wy, wz, &
+               utemp, vtemp, wtemp,&
+               temp_r, kx, ky, kz, uhat, vhat, what,&
+               uhattemp, vhattemp, whattemp,&
+               uhatold, vhatold, whatold,&
+               nonlinuhat, nonlinvhat, nonlinwhat, temp_c,&
+               intFact, phat, stat=AllocateStatus)		
 	if (AllocateStatus .ne. 0) stop
 	if (proc_id.eq.0) then
 		print *,'Program execution complete'

@@ -7,6 +7,7 @@ module variables
 
     !simulation variables:
     real(kind=8), dimension(:), allocatable     :: x, y, z, time, mychg, allchg
+    real(kind=8)            :: scalemodes, scalemodessquare, chg, factor
     
     real(p3dfft_type), dimension(:, :, :), allocatable :: u, v, w, &
                                                           ux, uy, uz, &
@@ -46,6 +47,7 @@ module variables
     integer iproc, jproc, nxc, nyc, nzc              ! double-paralellization
     logical iex
 	integer memsize(3)
+    integer p3_error
     
     !measurement variables
     real(kind = 8) :: Ekin        !total kinetic energy
@@ -59,10 +61,15 @@ module variables
     real(kind = 8) :: vSum        !sum all
     real(kind = 8) :: mywSum      !sum of values on single cpu
     real(kind = 8) :: wSum        !sum all
-    
     real(kind = 8) :: kk          !|k|^2
     real(kind = 8) :: phase       !phase for initiation
-     
+    real(kind=8), dimension(:), allocatable     :: kSpec      ! |k| array for  
+    real(kind=8), dimension(:), allocatable     :: myEspec, Espec ! Energy 
+                                                                  ! spectrum
+    real(kind = 8) :: absk        !|k|
+    integer        :: Nspec ! length of the energy spectrum arrays
+    integer        :: nk    ! position of the window corresponding to k
+    
     contains
     
     subroutine var_init()
@@ -70,6 +77,19 @@ module variables
         Lx = 2 * pi / alpha_x
         Ly = 2 * pi / alpha_y
         Lz = 2 * pi / alpha_z
+        
+        Nspec = int(sqrt(((real(Nx, kind=8) / 2.0d0) &
+                         * (2.0d0 * alpha_x / 3.0d0)) ** 2  + &
+                         ((real(Ny, kind=8) / 2.0d0) &
+                         * (2.0d0 * alpha_y / 3.0d0)) ** 2  + &
+                         ((real(Nz, kind=8) / 2.0d0) &
+                         * (2.0d0 * alpha_z / 3.0d0)) ** 2) / Deltak) - 1
+        
+        if(proc_id.eq.0) then
+            
+            print *, 'Nspec = ', Nspec
+            
+        end if
         
         !1D decomposition:
         ndim = 1
@@ -101,7 +121,9 @@ module variables
         
         ! Allocate common arrays:
         allocate (x(1:Nx), y(1:Ny), z(1:Nz), kx(1:Nx), ky(1:Ny), kz(1:Nz), & 
-                  time(1:Nt+1), mychg(1:3),allchg(1:3), stat=AllocateStatus)
+                  time(1:Nt+1), mychg(1:3),allchg(1:3), &
+                  kSpec(1:Nspec), myEspec(1:Nspec), Espec(1:Nspec), &
+                  stat=AllocateStatus)
                   
         if (AllocateStatus .ne. 0) then
             print *, 'Error ', AllocateStatus, ' allocating common arrays'
@@ -199,6 +221,10 @@ module variables
         do i = -Nz/2, Nz/2 - 1
             z(ind) = real(i, kind(0d0)) * Lz / real(Nz, kind(0d0))
             ind = ind + 1
+        end do
+        
+        do i = 1, Nspec
+            kSpec(i) = i * Deltak
         end do
         
         scalemodes = 1.0d0 / sqrt(real(Nx * Ny * Nz, kind(0d0)))

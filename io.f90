@@ -27,8 +27,9 @@
     integer(hsize_t), dimension(3)  :: io_stride
     integer(hsize_t), dimension(3)  :: io_block
     
-    integer,     private  :: io_Ekin 
-    
+    integer,     private  :: io_Ekin, io_Spec, io_Pars 
+    character(4) :: cnum        ! Save count
+                    
 contains
     
     subroutine io_init()
@@ -81,7 +82,7 @@ contains
         ! Close files
     
         if(proc_id.eq.0) then
-            close(io_KE)
+            close(io_Ekin)
         end if     
     end subroutine io_finalize
     
@@ -92,8 +93,7 @@ contains
         !
         ! https://www.hdfgroup.org/HDF5/Tutor/phypechk.html
         !
-        character(4) :: cnum        ! Save count
-                
+
         write(cnum,'(I4.4)') io_iSaveCount1
         
         if(proc_id .eq. 0) then 
@@ -472,7 +472,79 @@ contains
         end if 
     
     end subroutine
+    
+    subroutine io_saveSpectrum()
+        ! Save window-averaged spectrum
+        myEspec = 0d0
+        
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+            
+            ! Find which window current k belongs to:
+            absk = sqrt(real(conjg(kx(k)) * kx(k) &
+                           + conjg(ky(j)) * ky(j) &
+                           + conjg(kz(i)) * kz(i))) ! |k|^2
+            if (absk < real(int(absk / Deltak)) + 0.5 * Deltak) then
+                nk = int(absk / Deltak)
+            else
+                nk = int(absk / Deltak) + 1
+            end if 
+            
+            if (nk > Nspec .or. nk .eq. 0) cycle
+            
+            myEspec(nk) = myEspec(nk) &
+                        + real(conjg(uhat(i, j, k)) * uhat(i, j, k)) / Deltak &
+                        + real(conjg(vhat(i, j, k)) * vhat(i, j, k)) / Deltak &
+                        + real(conjg(what(i, j, k)) * what(i, j, k)) / Deltak 
+            
+        end do; end do; end do               
+        
+        call mpi_allreduce(myEspec, Espec, Nspec, mpi_double_precision, &
+                           mpi_sum, mpi_comm_world, ierr)
+       
+        if(proc_id.eq.0) then
+        
+            write(cnum,'(I4.4)') io_iSaveCount1
+             
+            print *, ' Saving spectrum'
+            open(io_Spec, status='unknown', access='append', &
+                 file='spec'//cnum//'.dat')
+            
+            do nk = 1, Nspec
+                
+                write(io_Spec, '(2e20.12)') kSpec(nk), Espec(nk)
+                
+            end do   
 
+            close(io_Spec)
+        
+        end if
+            
+    end subroutine io_saveSpectrum
+    
+    subroutine io_saveInfo()
+        ! Save parameters
+        if(proc_id.eq.0) then
+            open(io_Pars, status='unknown', access='append', file='info.dat')
+                
+                write(io_Pars, '(''Nx,y,z = '', 3I4)') Nx, Ny, Nz
+                write(io_Pars, '(''iSaveRate1 = '', 1I6)') iSaveRate1
+                write(io_Pars, '(''iSaveRate2 = '', 1I6)' ) iSaveRate2
+                write(io_Pars, '(''alpha_x,y,z = '', 3F12.9)') alpha_x, alpha_y, alpha_z
+                write(io_Pars, '(''dt = '', F12.9)') dt
+                write(io_Pars, '(''nu = '', F12.9)') nu
+                write(io_Pars, '(''Q = '', F12.9)') Q
+                write(io_Pars, '(''Deltak = '', F12.9)') Deltak
+                write(io_Pars, '(''Courant = '', F12.9)') Courant
+                if (initrand) then
+                    write(io_Pars, *) 'Random initial condition'
+                else
+                    write(io_Pars, *) 'Initial condition read from file'
+                end if
+                
+            close(io_Pars)
+        end if
+    end subroutine 
+    
 !**************************************************************************
  end module io
 !**************************************************************************

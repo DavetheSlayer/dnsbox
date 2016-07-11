@@ -16,6 +16,8 @@ SOURCESETD = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxETD.f90
 SOURCESEULER = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxEuler.f90 
 SOURCESVAR = parameters.f90 variables.f90 testvar.f90
 SOURCESRHS = parameters.f90 variables.f90 rhs.f90 testrhs.f90
+SOURCESSPEC = parameters.f90 variables.f90 io.f90 rhs.f90 testspec.f90 
+SOURCESDEAL = parameters.f90 variables.f90 io.f90 rhs.f90 testdealias.f90 
 
 ALL: $(SOURCES)
 	 ${COMPILER} -o dns.x $(FLAGS) $(SOURCES) $(LIBS)
@@ -42,3 +44,8 @@ etd: $(SOURCESETDRK)
 euler: $(SOURCESEULER)
 	${COMPILER} -o testEuler.x $(FLAGS) $(SOURCESEULER) $(LIBS)
 
+spec: $(SOURCESSPEC)
+	 ${COMPILER} -o testSpec.x $(FLAGS) $(SOURCESSPEC) $(LIBS)
+
+deal: $(SOURCESDEAL)
+	 ${COMPILER} -o testDeal.x $(FLAGS) $(SOURCESDEAL) $(LIBS)
