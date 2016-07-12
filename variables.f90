@@ -7,7 +7,7 @@ module variables
 
     !simulation variables:
     real(kind=8), dimension(:), allocatable     :: x, y, z, time, mychg, allchg
-    real(kind=8)            :: scalemodes, scalemodessquare, chg, factor
+    real(kind=8)            :: scalemodes, chg, factor!, scalemodessquare
     
     real(p3dfft_type), dimension(:, :, :), allocatable :: u, v, w, &
                                                           ux, uy, uz, &
@@ -39,6 +39,7 @@ module variables
         
     !counters and logicals:
     integer(kind=4) :: ind, iol, i, j, k, n, t, AllocateStatus
+    logical         :: running_exist
   
     !parallelization variables:
     integer ierr, nup, ndim, dims(2), nproc, proc_id ! MPI vars
@@ -66,9 +67,12 @@ module variables
     real(kind=8), dimension(:), allocatable     :: kSpec      ! |k| array for  
     real(kind=8), dimension(:), allocatable     :: myEspec, Espec ! Energy 
                                                                   ! spectrum
-    real(kind = 8) :: absk        !|k|
-    integer        :: Nspec ! length of the energy spectrum arrays
-    integer        :: nk    ! position of the window corresponding to k
+    real(kind = 8) :: absk        ! |k|
+    integer        :: Nspec       ! length of the energy spectrum arrays
+    integer        :: nk          ! position of the window corresponding to k
+    real(kind = 8) :: myDisp      ! Dissipation on one cpu
+    real(kind = 8) :: Disp        ! Total dissipation
+        
     
     contains
     
@@ -227,8 +231,8 @@ module variables
             kSpec(i) = i * Deltak
         end do
         
-        scalemodes = 1.0d0 / sqrt(real(Nx * Ny * Nz, kind(0d0)))
-        scalemodessquare = 1.0d0 / real(Nx * Ny * Nz, kind(0d0))
+        scalemodes = 1.0d0 / real(Nx * Ny * Nz, kind(0d0))
+        !scalemodessquare = 1.0d0 / real(Nx * Ny * Nz, kind(0d0))
         
         if (proc_id .eq. 0) then
             print *, 'Setup grid and Fourier frequencies'

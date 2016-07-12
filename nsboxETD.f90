@@ -34,47 +34,47 @@ program nsbox
                 
     end do; end do; end do
 
-    ! randomly fill fields:
-    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+!    ! randomly fill fields:
+!    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
             
-                call random_number(u(i, j, k))
-                u(i, j, k) = u(i, j, k) - 0.5
-                myuSum = myuSum + u(i, j, k)
+!                call random_number(u(i, j, k))
+!                u(i, j, k) = u(i, j, k) - 0.5
+!                myuSum = myuSum + u(i, j, k)
                 
-                call random_number(u(i, j, k))
-                v(i, j, k) = v(i, j, k) - 0.5
-                myvSum = myvSum + u(i, j, k)
+!                call random_number(u(i, j, k))
+!                v(i, j, k) = v(i, j, k) - 0.5
+!                myvSum = myvSum + u(i, j, k)
 
-                call random_number(u(i, j, k))
-                w(i, j, k) = w(i, j, k) - 0.5
-                mywSum = mywSum + u(i, j, k)
+!                call random_number(u(i, j, k))
+!                w(i, j, k) = w(i, j, k) - 0.5
+!                mywSum = mywSum + u(i, j, k)
                 
-    end do; end do; end do
+!    end do; end do; end do
     
-    call mpi_allreduce(myuSum, uSum, 1, mpi_double_precision, &
-                       mpi_sum, mpi_comm_world, ierr)
+!    call mpi_allreduce(myuSum, uSum, 1, mpi_double_precision, &
+!                       mpi_sum, mpi_comm_world, ierr)
     
-    call mpi_allreduce(myvSum, vSum, 1, mpi_double_precision, &
-                       mpi_sum, mpi_comm_world, ierr)
+!    call mpi_allreduce(myvSum, vSum, 1, mpi_double_precision, &
+!                       mpi_sum, mpi_comm_world, ierr)
     
-    call mpi_allreduce(mywSum, wSum, 1, mpi_double_precision, &
-                       mpi_sum, mpi_comm_world, ierr)
+!    call mpi_allreduce(mywSum, wSum, 1, mpi_double_precision, &
+!                       mpi_sum, mpi_comm_world, ierr)
     
-    ! ensure zero-mean
-    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+!    ! ensure zero-mean
+!    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
 
-                u(i, j, k) = (u(i, j, k) - uSum * scalemodes) * 0.1d0
+!                u(i, j, k) = (u(i, j, k) - uSum * scalemodes) * 0.1d0
                 
-                v(i, j, k) = (v(i, j, k) - vSum * scalemodes) * 0.1d0
+!                v(i, j, k) = (v(i, j, k) - vSum * scalemodes) * 0.1d0
 
-                w(i, j, k) = (w(i, j, k) - wSum * scalemodes) * 0.1d0
+!                w(i, j, k) = (w(i, j, k) - wSum * scalemodes) * 0.1d0
                 
-    end do; end do; end do
+!    end do; end do; end do
     
-    ! Apply projection operator to ensure divergence-free field:
-    call rhsProject()    
+!    ! Apply projection operator to ensure divergence-free field:
+!    call rhsProject()    
         
-!    call io_loadState('state0000.h5')
+!!    call io_loadState('state0000.h5')
     
     call p3dfft_ftran_r2c (u, uhat, 'fft')
     call p3dfft_ftran_r2c (v, vhat, 'fft')
@@ -89,13 +89,13 @@ program nsbox
     ! copy uhat -> uhatold and uhattemp
     do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
         
-        uhattemp(i, j, k) = uhat(i, j, k) * scalemodes
-        vhattemp(i, j, k) = vhat(i, j, k) * scalemodes
-        whattemp(i, j, k) = what(i, j, k) * scalemodes
+        uhattemp(i, j, k) = uhat(i, j, k) 
+        vhattemp(i, j, k) = vhat(i, j, k) 
+        whattemp(i, j, k) = what(i, j, k) 
         
-        uhatold(i, j, k) = uhat(i, j, k) * scalemodes
-        vhatold(i, j, k) = vhat(i, j, k) * scalemodes
-        whatold(i, j, k) = what(i, j, k) * scalemodes
+        uhatold(i, j, k) = uhat(i, j, k) 
+        vhatold(i, j, k) = vhat(i, j, k) 
+        whatold(i, j, k) = what(i, j, k) 
         
         uhat(i, j, k) = uhatold(i, j, k)
         vhat(i, j, k) = vhatold(i, j, k)

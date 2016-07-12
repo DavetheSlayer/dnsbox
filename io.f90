@@ -5,6 +5,7 @@
  module io
 !**************************************************************************
     use variables
+    use rhs
     use hdf5
     
     integer(kind=8) :: io_iSaveCount1, io_iSaveCount2   ! save counters
@@ -29,7 +30,8 @@
     
     integer,     private  :: io_Ekin, io_Spec, io_Pars 
     character(4) :: cnum        ! Save count
-                    
+    real(kind=8) :: scalekx   !scaling to avoid counting kx=0 modes twice
+    
 contains
     
     subroutine io_init()
@@ -444,31 +446,78 @@ contains
         !
         ! Measures some statistics and saves into text files
         !
+        
+        !*************************!
+        ! Average kinetic energy: !
+        !*************************!
         myEkin = 0d0
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+!            print *, k
+            if (kx(k).eq.cmplx(0.0d0, 0.0d0)) then              
+                scalekx = 0.5d0
+            else 
+                scalekx = 1.0d0 
+            end if
             
-            myEkin = myEkin + real(conjg(uhat(i, j, k)) * uhat(i, j, k))
-            myEkin = myEkin + real(conjg(vhat(i, j, k)) * vhat(i, j, k))
-            myEkin = myEkin + real(conjg(what(i, j, k)) * what(i, j, k))
+            myEkin = myEkin &
+                   + real(conjg(uhat(i, j, k)) * uhat(i, j, k)) * scalekx &
+                   + real(conjg(vhat(i, j, k)) * vhat(i, j, k)) * scalekx &
+                   + real(conjg(what(i, j, k)) * what(i, j, k)) * scalekx
+            
             
         end do; end do; end do   
         
-        myEkin = myEkin * scalemodessquare
+        myEkin = myEkin * (scalemodes ** 2)
         call mpi_allreduce(myEkin, Ekin, 1, mpi_double_precision, &
                            mpi_sum, mpi_comm_world, ierr)
         
+        !*****************!
+        ! Courant number: !
+        !*****************!
         myCourantMax = maxval(abs(u)) * dt / (Lx / real(Nx, kind(0d0))) &
                      + maxval(abs(v)) * dt / (Ly / real(Ny, kind(0d0))) &
                      + maxval(abs(w)) * dt / (Lz / real(Nz, kind(0d0)))
 
         call mpi_allreduce(myCourantMax, CourantMax, 1, mpi_double_precision, &
                            mpi_max, mpi_comm_world, ierr)                     
+        
+        
+        !*******************!
+        ! Dissipation rate: !
+        !*******************!        
+        call rhsDerivatives() ! Compute derivatives for dissipation calculation
+        
+        myDisp = 0d0
+        do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+            
+            myDisp = myDisp + ux(i, j, k) * ux(i, j, k) &
+                            + uy(i, j, k) * uy(i, j, k) &
+                            + uz(i, j, k) * uz(i, j, k) &
+                            + vx(i, j, k) * vx(i, j, k) &
+                            + vy(i, j, k) * vy(i, j, k) &
+                            + vz(i, j, k) * vz(i, j, k) &
+                            + wx(i, j, k) * wx(i, j, k) &
+                            + wy(i, j, k) * wy(i, j, k) &
+                            + wz(i, j, k) * wz(i, j, k) 
+                            
+        end do; end do; end do        
+        
+        myDisp = myDisp * nu * scalemodes
+
+        call mpi_allreduce(myDisp, Disp, 1, mpi_double_precision, &
+                           mpi_sum, mpi_comm_world, ierr)                             
 
         if(proc_id.eq.0) then
             print *, ' Saving stats  '
             print *, 'Ekin = ', Ekin
+            print *, 'Dissipation = ', Disp
+            print *, 'Input = ', 2.0d0 * Q * Ekin
             print *, 'CourantMax = ', CourantMax
-            write(io_Ekin,'(3e20.12)')  time(n+1), Ekin, CourantMax
+            write(io_Ekin,'(5e20.12)')  time(n+1), &     ! Instance
+                                        Ekin, &          ! Total kinetic energ.
+                                        Disp, &          ! Dissipation rate 
+                                        2.0d0 * Q * Ekin, & ! Energy input rate
+                                        CourantMax       ! maximum Courant num.
         end if 
     
     end subroutine
@@ -492,12 +541,12 @@ contains
             if (nk > Nspec .or. nk .eq. 0) cycle
             
             myEspec(nk) = myEspec(nk) &
-                        + real(conjg(uhat(i, j, k)) * uhat(i, j, k)) / Deltak &
-                        + real(conjg(vhat(i, j, k)) * vhat(i, j, k)) / Deltak &
-                        + real(conjg(what(i, j, k)) * what(i, j, k)) / Deltak 
-            
+                        + (+ real(conjg(uhat(i, j, k)) * uhat(i, j, k)) &
+                           + real(conjg(vhat(i, j, k)) * vhat(i, j, k)) &
+                           + real(conjg(what(i, j, k)) * what(i, j, k))) &
+                          * (scalemodes ** 2) / Deltak
         end do; end do; end do               
-        
+
         call mpi_allreduce(myEspec, Espec, Nspec, mpi_double_precision, &
                            mpi_sum, mpi_comm_world, ierr)
        

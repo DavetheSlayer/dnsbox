@@ -20,7 +20,7 @@ program nsbox
     time(1) = 0.0d0
     factor = sqrt(3.0d0)
     
-    if( .false. ) then ! Set true to initiate simulation from a random field
+    if( initrand ) then ! Set true to initiate simulation from a random field
         ! Initiate fields in momentum space:
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)    
             ! skip zero modes:
@@ -47,7 +47,7 @@ program nsbox
             
             ! Assign a gaussian distributed amplitude and a random phase to the 
             ! Fourier mode:
-            what(i, j, k) = 1.0d4 * sqrt(exp(-2.0d0 * kk / 1.0d0)) * exp(cmplx(0.0d0, phase)) 
+            what(i, j, k) = 1.0d6 * sqrt(exp(-2.0d0 * kk / 1.0d0)) * exp(cmplx(0.0d0, phase)) 
         end do; end do; end do
         
         call rhsDealias()
@@ -71,38 +71,44 @@ program nsbox
         ! Load initial state:
         call io_loadState('state0000.h5')
     end if
-    
-    call io_saveState()
-            
+
     call p3dfft_ftran_r2c (u, uhat, 'fft')
     call p3dfft_ftran_r2c (v, vhat, 'fft')
     call p3dfft_ftran_r2c (w, what, 'fft')
-    
+
     call rhsDealias()
+
+    ! copy uhat -> uhatold and uhattemp
+    do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+        
+        uhattemp(i, j, k) = uhat(i, j, k)
+        vhattemp(i, j, k) = vhat(i, j, k)
+        whattemp(i, j, k) = what(i, j, k)
+        
+        uhatold(i, j, k) = uhat(i, j, k)
+        vhatold(i, j, k) = vhat(i, j, k)
+        whatold(i, j, k) = what(i, j, k)
+        
+    end do; end do; end do
+    
+    call io_saveSpectrum()
+    call io_saveStats()
+    call io_saveState()
     
     if(proc_id .eq. 0) then 
         print *, 'Starting time-stepping'
     endif
-    
-    ! copy uhat -> uhatold and uhattemp
-    do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-        
-        uhattemp(i, j, k) = uhat(i, j, k) * scalemodes
-        vhattemp(i, j, k) = vhat(i, j, k) * scalemodes
-        whattemp(i, j, k) = what(i, j, k) * scalemodes
-        
-        uhatold(i, j, k) = uhat(i, j, k) * scalemodes
-        vhatold(i, j, k) = vhat(i, j, k) * scalemodes
-        whatold(i, j, k) = what(i, j, k) * scalemodes
-        
-        uhat(i, j, k) = uhatold(i, j, k)
-        vhat(i, j, k) = vhatold(i, j, k)
-        what(i, j, k) = whatold(i, j, k)
-        
-    end do; end do; end do
 
     call rhsIntFact() ! compute integration factor    
-    do n = 1, Nt
+    
+    open (99, file='RUNNING')
+         write(99,*) 'This file indicates a job running in this directory.'
+         write(99,*) 'Delete this file to cleanly terminate the process.'
+    close(99)
+    inquire(file='RUNNING', exist=running_exist)
+    
+    do while (running_exist)
+    n = n + 1
         
         ! compute the nonlinear term for uhattemp:
         call rhsNonlinear()
@@ -184,37 +190,26 @@ program nsbox
         if(modulo(n,iSaveRate2)==0) then
             call io_saveStats()
         end if
+                
+        ! Terminate if maximum time steps are reached or the Courant number 
+        ! exceeds the allowed limit:
+        if ((n .eq. Nt) .or. (CourantMax .gt. Courant)) then
+            if (proc_id.eq.0) then
+                print *, ' terminating run ... '
+            end if            
+            
+            inquire(file='RUNNING', exist=running_exist)
+            if(running_exist) open(99, file='RUNNING')
+            if(running_exist) close(99, status='delete')
+            
+            ! Save final state and spectrum:
+            call io_saveSpectrum()
+            call io_saveState()
+        end if
+        
+        inquire(file='RUNNING', exist=running_exist)
             
     end do
-    
-    ! Error in final numerical solution:
-    
-    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
-                
-        utemp(i, j, k) = u(i, j, k) &
-                        - (-0.5*( factor*cos(x(i))*sin(y(j))*sin(z(k))&
-						+sin(x(i))*cos(y(j))*cos(z(k)) )*exp(-(factor**2)*time(Nt+1) * nu))
-                
-        vtemp(i, j, k) = v(i, j, k) &
-                        - (0.5*(  factor*sin(x(i))*cos(y(j))*sin(z(k))&
-						-cos(x(i))*sin(y(j))*cos(z(k)) )*exp(-(factor**2)*time(Nt+1) * nu))
-                
-        wtemp(i, j, k) = w(i, j, k) &
-                        - (cos(x(i))*cos(y(j))*sin(z(k))*exp(-(factor**2)*time(Nt+1) * nu))
-                            
-    end do; end do; end do        
-    
-    mychg(1) = maxval(abs(utemp))
-    mychg(2) = maxval(abs(vtemp))
-    mychg(3) = maxval(abs(wtemp))
-    
-    call mpi_allreduce(mychg, allchg, 3, MPI_DOUBLE_PRECISION, &
-                       MPI_MAX, MPI_COMM_WORLD, ierr)
-    chg = allchg(1) + allchg(2) + allchg(3)
-    
-    if (proc_id.eq.0) then
-        print *, 'The error at the final timestep is ', chg
-    end if
     
 	deallocate(x, y, z, time, mychg, allchg, kSpec, myEspec, Espec, &
                u, v, w, ux, uy, uz, vx, vy, vz, wx, wy, wz, &
@@ -234,8 +229,7 @@ program nsbox
     call p3dfft_clean
     call io_finalize()
     call MPI_FINALIZE (ierr)
-    
-                    
+        
 contains
 
 subroutine initMpi()
