@@ -18,15 +18,14 @@ program nsbox
     call io_saveInfo()
     
     time(1) = 0.0d0
-    factor = sqrt(3.0d0)
     
     if( initrand ) then ! Set true to initiate simulation from a random field
         ! Initiate fields in momentum space:
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)    
-            ! skip zero modes:
-            if((kx(k) .eq. 0.0d0) .or. &
-               (ky(j) .eq. 0.0d0) .or. &
-               (kz(i) .eq. 0.0d0)) cycle 
+            ! skip 000 mode:
+            if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
+               (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
+               (kz(i) .eq. cmplx(0.0d0, 0.0d0))) cycle 
             
             kk = real(conjg(kx(k)) * kx(k) &
                     + conjg(ky(j)) * ky(j) &
@@ -36,24 +35,40 @@ program nsbox
             phase = phase * 2 * pi ! a random phase for the Fourier mode
             ! Assign a gaussian distributed amplitude and a random phase to the 
             ! Fourier mode:
-            uhat(i, j, k) = sqrt(exp(-2.0d0 * kk / 1.0d0)) * exp(cmplx(0.0d0, phase))
+            uhat(i, j, k) = (scalemodes**(-1)) * 1.0d-1 &
+                          * sqrt(exp(-2.0d0 * kk / 3.0d2)) * exp(cmplx(0.0d0, phase))
             call random_number(phase)
             phase = phase * 2 * pi ! a random phase for the Fourier mode
             ! Assign a gaussian distributed amplitude and a random phase to the 
             ! Fourier mode:
-            vhat(i, j, k) = sqrt(exp(-2.0d0 * kk / 1.0d0)) * exp(cmplx(0.0d0, phase))
+            vhat(i, j, k) = (scalemodes**(-1)) * 1.0d-1 &
+                          * sqrt(exp(-2.0d0 * kk / 3.0d2)) * exp(cmplx(0.0d0, phase))
             call random_number(phase)
             phase = phase * 2 * pi ! a random phase for the Fourier mode
             
             ! Assign a gaussian distributed amplitude and a random phase to the 
             ! Fourier mode:
-            what(i, j, k) = 1.0d6 * sqrt(exp(-2.0d0 * kk / 1.0d0)) * exp(cmplx(0.0d0, phase)) 
+            what(i, j, k) = (scalemodes**(-1)) * 1.0d-1 &
+                          * sqrt(exp(-2.0d0 * kk / 3.0d2)) * exp(cmplx(0.0d0, phase)) 
         end do; end do; end do
         
         call rhsDealias()
         
         ! Apply projection operator to ensure divergence-free field:
         call rhsProject()    
+        
+        ! Set initial kinetic energy to 1.0
+        call io_Ekinetic()
+        
+        factor = sqrt(1.0d0 / Ekin)
+        
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+            
+            uhat(i, j, k) = uhat(i, j, k) * factor
+            vhat(i, j, k) = vhat(i, j, k) * factor
+            what(i, j, k) = what(i, j, k) * factor
+            
+        end do; end do; end do
         
         ! Transform to configuration space:
         call p3dfft_btran_c2r (uhat, u, 'tff')

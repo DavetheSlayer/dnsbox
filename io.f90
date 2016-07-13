@@ -446,7 +446,28 @@ contains
         !
         ! Measures some statistics and saves into text files
         !
+        call io_Ekinetic()
         
+        call io_Courant()
+        
+        call io_Dissipation()
+
+        if(proc_id.eq.0) then
+            print *, ' Saving stats  '
+            print *, 'Ekin = ', Ekin
+            print *, 'Dissipation = ', Disp
+            print *, 'Input = ', 2.0d0 * Q * Ekin
+            print *, 'CourantMax = ', CourantMax
+            write(io_Ekin,'(5e20.12)')  time(n+1), &     ! Instance
+                                        Ekin, &          ! Total kinetic energ.
+                                        Disp, &          ! Dissipation rate 
+                                        2.0d0 * Q * Ekin, & ! Energy input rate
+                                        CourantMax       ! maximum Courant num.
+        end if 
+    
+    end subroutine io_saveStats
+    
+    subroutine io_Ekinetic()
         !*************************!
         ! Average kinetic energy: !
         !*************************!
@@ -470,17 +491,10 @@ contains
         myEkin = myEkin * (scalemodes ** 2)
         call mpi_allreduce(myEkin, Ekin, 1, mpi_double_precision, &
                            mpi_sum, mpi_comm_world, ierr)
-        
-        !*****************!
-        ! Courant number: !
-        !*****************!
-        myCourantMax = maxval(abs(u)) * dt / (Lx / real(Nx, kind(0d0))) &
-                     + maxval(abs(v)) * dt / (Ly / real(Ny, kind(0d0))) &
-                     + maxval(abs(w)) * dt / (Lz / real(Nz, kind(0d0)))
-
-        call mpi_allreduce(myCourantMax, CourantMax, 1, mpi_double_precision, &
-                           mpi_max, mpi_comm_world, ierr)                     
-        
+                
+    end subroutine io_Ekinetic
+    
+    subroutine io_Dissipation()
         
         !*******************!
         ! Dissipation rate: !
@@ -506,21 +520,22 @@ contains
 
         call mpi_allreduce(myDisp, Disp, 1, mpi_double_precision, &
                            mpi_sum, mpi_comm_world, ierr)                             
-
-        if(proc_id.eq.0) then
-            print *, ' Saving stats  '
-            print *, 'Ekin = ', Ekin
-            print *, 'Dissipation = ', Disp
-            print *, 'Input = ', 2.0d0 * Q * Ekin
-            print *, 'CourantMax = ', CourantMax
-            write(io_Ekin,'(5e20.12)')  time(n+1), &     ! Instance
-                                        Ekin, &          ! Total kinetic energ.
-                                        Disp, &          ! Dissipation rate 
-                                        2.0d0 * Q * Ekin, & ! Energy input rate
-                                        CourantMax       ! maximum Courant num.
-        end if 
+        
+    end subroutine io_Dissipation
     
-    end subroutine
+    subroutine io_Courant()
+        
+        !*****************!
+        ! Courant number: !
+        !*****************!
+        myCourantMax = maxval(abs(u)) * dt / (Lx / real(Nx, kind(0d0))) &
+                     + maxval(abs(v)) * dt / (Ly / real(Ny, kind(0d0))) &
+                     + maxval(abs(w)) * dt / (Lz / real(Nz, kind(0d0)))
+
+        call mpi_allreduce(myCourantMax, CourantMax, 1, mpi_double_precision, &
+                           mpi_max, mpi_comm_world, ierr)                     
+        
+    end subroutine io_Courant
     
     subroutine io_saveSpectrum()
         ! Save window-averaged spectrum
