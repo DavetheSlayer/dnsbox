@@ -6,8 +6,10 @@ module variables
     include 'mpif.h'
 
     !simulation variables:
+    real(kind=8)            :: dt= 0.00005d0      ! Time step size
     real(kind=8), dimension(:), allocatable     :: x, y, z, time, mychg, allchg
     real(kind=8)            :: scalemodes, chg, factor!, scalemodessquare
+    
     
     real(p3dfft_type), dimension(:, :, :), allocatable :: u, v, w, &
                                                           ux, uy, uz, &
@@ -53,8 +55,8 @@ module variables
     !measurement variables
     real(kind = 8) :: Ekin        !total kinetic energy
     real(kind = 8) :: myEkin      !kinetic energy on a cpu
-    real(kind = 8) :: CourantMax  !Maximum Courant number for time-step control 
-    real(kind = 8) :: myCourantMax  !Maximum Courant number for time-step 
+    real(kind = 8) :: Courant     !Maximum Courant number for time-step control 
+    real(kind = 8) :: myCourant   !Maximum Courant number for time-step 
                                     !control 
     real(kind = 8) :: myuSum      !sum of values on single cpu
     real(kind = 8) :: uSum        !sum all

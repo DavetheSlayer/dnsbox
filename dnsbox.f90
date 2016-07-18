@@ -21,6 +21,7 @@ program nsbox
     
     if( initrand ) then ! Set true to initiate simulation from a random field
         ! Initiate fields in momentum space:
+        ! Initiation method: Rosales & Meneveau (2005), Phys. Fluids. eq.9
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)    
             ! skip 000 mode:
             if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
@@ -34,22 +35,28 @@ program nsbox
             call random_number(phase)
             phase = phase * 2 * pi ! a random phase for the Fourier mode
             ! Assign a gaussian distributed amplitude and a random phase to the 
-            ! Fourier mode:
-            uhat(i, j, k) = (scalemodes**(-1)) * 1.0d-1 &
-                          * sqrt(exp(-2.0d0 * kk / 3.0d2)) * exp(cmplx(0.0d0, phase))
+            ! Fourier mode (eq9 / 4pi^2):
+            uhat(i, j, k) = sqrt(4 * (uzero ** 2) * kk * (kzero ** (-5))  &
+                                 * (pi ** (-3.0d0/2.0d0)) * (2.0d0 ** (-0.5)) &
+                                 * exp(-2.0d0 * kk / (kzero ** 2))) &
+                                 * exp(cmplx(0.0d0, phase))
             call random_number(phase)
             phase = phase * 2 * pi ! a random phase for the Fourier mode
             ! Assign a gaussian distributed amplitude and a random phase to the 
             ! Fourier mode:
-            vhat(i, j, k) = (scalemodes**(-1)) * 1.0d-1 &
-                          * sqrt(exp(-2.0d0 * kk / 3.0d2)) * exp(cmplx(0.0d0, phase))
+            vhat(i, j, k) = sqrt(4 * (uzero ** 2) * kk * (kzero ** (-5))  &
+                                 * (pi ** (-3.0d0/2.0d0)) * (2.0d0 ** (-0.5)) &
+                                 * exp(-2.0d0 * kk / (kzero ** 2))) &
+                                 * exp(cmplx(0.0d0, phase))
             call random_number(phase)
             phase = phase * 2 * pi ! a random phase for the Fourier mode
             
             ! Assign a gaussian distributed amplitude and a random phase to the 
             ! Fourier mode:
-            what(i, j, k) = (scalemodes**(-1)) * 1.0d-1 &
-                          * sqrt(exp(-2.0d0 * kk / 3.0d2)) * exp(cmplx(0.0d0, phase)) 
+            what(i, j, k) = sqrt(4 * (uzero ** 2) * kk * (kzero ** (-5))  &
+                                 * (pi ** (-3.0d0/2.0d0)) * (2.0d0 ** (-0.5)) &
+                                 * exp(-2.0d0 * kk / (kzero ** 2))) &
+                                 * exp(cmplx(0.0d0, phase))
         end do; end do; end do
         
         call rhsDealias()
@@ -113,8 +120,13 @@ program nsbox
     if(proc_id .eq. 0) then 
         print *, 'Starting time-stepping'
     endif
-
-    call rhsIntFact() ! compute integration factor    
+    
+    
+    if (tStepFix) then
+        call rhsIntFact() ! compute integration factor    
+    else 
+        call setTimeStep()
+    end if
     
     open (99, file='RUNNING')
          write(99,*) 'This file indicates a job running in this directory.'
@@ -178,10 +190,10 @@ program nsbox
                 
         end do; end do; end do    
 
-        time(n+1) = n * dt
+        time(n+1) = time(n) + dt
         
         if (proc_id.eq.0) then
-            print *, 'time', n * dt
+            print *, 'time', time(n+1)
         end if
         
         ! Back to the configuration space:
@@ -208,8 +220,29 @@ program nsbox
                 
         ! Terminate if maximum time steps are reached or the Courant number 
         ! exceeds the allowed limit:
-        if ((n .eq. Nt) .or. (CourantMax .gt. Courant)) then
+        if ((tStepFix .eqv. .false.) .and. & 
+           ((Courant .gt. CourantMax) .or. (Courant .lt. CourantMin))) then
+            ! Courant number outside the desired range, change the time step:
+            call setTimeStep()
+            
+        else if (tStepFix .and. Courant .gt. CourantMax) then
+            ! Courant number exceeded maximum allowed value, terminate the run:
             if (proc_id.eq.0) then
+                print *, ' Courant number exceeded the maximum allowed value '
+                print *, ' terminating run ... '
+            end if            
+            
+            inquire(file='RUNNING', exist=running_exist)
+            if(running_exist) open(99, file='RUNNING')
+            if(running_exist) close(99, status='delete')
+            
+            ! Save final state and spectrum:
+            call io_saveSpectrum()
+            call io_saveState()
+        
+        else if (n .eq. Nt) then
+            if (proc_id.eq.0) then
+                print *, ' Maximum time steps are reached'
                 print *, ' terminating run ... '
             end if            
             
@@ -255,5 +288,21 @@ subroutine initMpi()
     call mpi_comm_rank (mpi_comm_world, proc_id, ierr)
 
 end subroutine initMpi
+
+subroutine setTimeStep()
+    ! Change the time-step such that the Courant number is set to 
+    ! (CourantMin+CourantMax)/2
+    ! This subroutine should be called after the stats are computed
+    
+    dt = ((CourantMax + CourantMin) / (2.0d0 * Courant) ) * dt
+    call rhsIntFact() ! Recompute the integration factor with the new time step
+    call io_Courant()
+	if (proc_id.eq.0) then
+		print *,'time step set to', dt
+        print *, 'new Courant number', Courant
+	end if
+    
+        
+end subroutine setTimeStep
 
 end program nsbox

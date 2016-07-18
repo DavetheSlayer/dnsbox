@@ -457,12 +457,12 @@ contains
             print *, 'Ekin = ', Ekin
             print *, 'Dissipation = ', Disp
             print *, 'Input = ', 2.0d0 * Q * Ekin
-            print *, 'CourantMax = ', CourantMax
+            print *, 'Courant = ', Courant
             write(io_Ekin,'(5e20.12)')  time(n+1), &     ! Instance
                                         Ekin, &          ! Total kinetic energ.
                                         Disp, &          ! Dissipation rate 
                                         2.0d0 * Q * Ekin, & ! Energy input rate
-                                        CourantMax       ! maximum Courant num.
+                                        Courant          ! maximum Courant num.
         end if 
     
     end subroutine io_saveStats
@@ -528,11 +528,11 @@ contains
         !*****************!
         ! Courant number: !
         !*****************!
-        myCourantMax = maxval(abs(u)) * dt / (Lx / real(Nx, kind(0d0))) &
-                     + maxval(abs(v)) * dt / (Ly / real(Ny, kind(0d0))) &
-                     + maxval(abs(w)) * dt / (Lz / real(Nz, kind(0d0)))
+        myCourant = maxval(abs(u)) * dt / (Lx / real(Nx, kind(0d0))) &
+                  + maxval(abs(v)) * dt / (Ly / real(Ny, kind(0d0))) &
+                  + maxval(abs(w)) * dt / (Lz / real(Nz, kind(0d0)))
 
-        call mpi_allreduce(myCourantMax, CourantMax, 1, mpi_double_precision, &
+        call mpi_allreduce(myCourant, Courant, 1, mpi_double_precision, &
                            mpi_max, mpi_comm_world, ierr)                     
         
     end subroutine io_Courant

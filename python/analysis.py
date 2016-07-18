@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-runDir = "../test/0017"
+runDir = "../test/0019"
 
 #Read simulation parameters:
 with open(runDir+"/info.dat") as fp:
