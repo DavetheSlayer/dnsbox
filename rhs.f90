@@ -4,66 +4,6 @@ module rhs
     implicit none
     
     contains
-    
-    subroutine rhsProject()
-        ! Apply projection on (u,v,w)hat to make it divergence-free:
-        
-        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-            
-            uhattemp(i, j, k) = uhat(i, j, k)
-            vhattemp(i, j, k) = vhat(i, j, k)
-            whattemp(i, j, k) = what(i, j, k)
-            
-        end do; end do; end do
-         
-        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1) 
-            ! k -> kx - index, j -> ky - index, i -> kz - index
-          
-            uhat(i, j, k) = uhattemp(i, j, k) &
-                          - kx(k) * kx(k) * uhattemp(i, j, k) / &
-                            (kx(k) * kx(k) &
-                           + ky(j) * ky(j) & 
-                           + kz(i) * kz(i) + 0.1d0 ** 13) &
-                          - kx(k) * ky(j) * vhattemp(i, j, k) / &
-                            (kx(k) * kx(k) &
-                           + ky(j) * ky(j) & 
-                           + kz(i) * kz(i) + 0.1d0 ** 13) &
-                          - kx(k) * kz(i) * whattemp(i, j, k) / &
-                            (kx(k) * kx(k) &
-                           + ky(j) * ky(j) & 
-                           + kz(i) * kz(i) + 0.1d0 ** 13) 
-            
-            vhat(i, j, k) = vhattemp(i, j, k) &
-                          - ky(j) * kx(k) * uhattemp(i, j, k) / &
-                            (kx(k) * kx(k) &
-                           + ky(j) * ky(j) & 
-                           + kz(i) * kz(i) + 0.1d0 ** 13) &
-                          - ky(j) * ky(j) * vhattemp(i, j, k) / &
-                            (kx(k) * kx(k) &
-                           + ky(j) * ky(j) & 
-                           + kz(i) * kz(i) + 0.1d0 ** 13) &
-                          - ky(j) * kz(i) * whattemp(i, j, k) / &
-                            (kx(k) * kx(k) &
-                           + ky(j) * ky(j) & 
-                           + kz(i) * kz(i) + 0.1d0 ** 13) 
-            
-            what(i, j, k) = whattemp(i, j, k) &
-                          - kz(i) * kx(k) * uhattemp(i, j, k) / &
-                            (kx(k) * kx(k) &
-                           + ky(j) * ky(j) & 
-                           + kz(i) * kz(i) + 0.1d0 ** 13) &
-                          - kz(i) * ky(j) * vhattemp(i, j, k) / &
-                            (kx(k) * kx(k) &
-                           + ky(j) * ky(j) & 
-                           + kz(i) * kz(i) + 0.1d0 ** 13) &
-                          - kz(i) * kz(i) * whattemp(i, j, k) / &
-                            (kx(k) * kx(k) &
-                           + ky(j) * ky(j) & 
-                           + kz(i) * kz(i) + 0.1d0 ** 13) 
-                                       
-        end do; end do; end do
-        
-    end subroutine rhsProject
         
     subroutine rhsDerivatives()
         ! Compute space-derivatives of u,v,w from (u,v,w)hattemp
@@ -188,12 +128,12 @@ module rhs
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1) 
             ! k -> kx - index, j -> ky - index, i -> kz - index
             
-            if  (abs(kx(k)) >  (real(Nx, kind=8) / 2.0d0) &
-                                 * (2.0d0 * alpha_x / 3.0d0)  &
-                .or. abs(ky(j)) >  (real(Ny, kind=8) / 2.0d0) &
-                                 * (2.0d0 * alpha_y / 3.0d0)  &
-                .or. abs(kz(i)) >  (real(Nz, kind=8) / 2.0d0) &
-                                 * (2.0d0 * alpha_z / 3.0d0)) then
+            if  ((abs(kx(k)) .gt.  (real(Nx, kind=8) / 2.0d0) &
+                                 * (2.0d0 * alpha_x / 3.0d0))  &
+            .or. (abs(ky(j)) .gt.  (real(Ny, kind=8) / 2.0d0) &
+                                 * (2.0d0 * alpha_y / 3.0d0))  &
+            .or. (abs(kz(i)) .gt.  (real(Nz, kind=8) / 2.0d0) &
+                                 * (2.0d0 * alpha_z / 3.0d0))) then
             ! 2/3 dealiasing:
             
                       nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
@@ -201,14 +141,22 @@ module rhs
                       nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)          
                 
             else 
-            
+                if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
+                   (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
+                   (kz(i) .eq. cmplx(0.0d0, 0.0d0))) then
+                    eps = 0.1d0 ** 13
+                else
+                    eps = 0.0d0
+                end if                
+                
                 phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
                                         + ky(j) * nonlinvhat(i, j, k) & 
                                         + kz(i) * nonlinwhat(i, j, k)) & 
                                          /  (kx(k) * kx(k) &
                                            + ky(j) * ky(j) & 
-                                           + kz(i) * kz(i) + 0.1d0 ** 13)
+                                           + kz(i) * kz(i) + eps)
                 
+                ! from n_k(u) to N_k(u)
                 nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
                                       - kx(k) * phat(i, j, k)
                 nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
@@ -228,6 +176,7 @@ module rhs
     
 !    subroutine rhsAll()
 !        ! Compute RHS for uhattemp
+!        ! utilde in Adjoint descent
 !        call rhsNonlinear()
 !        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1) 
 !            rhsuhat(i, j, k) = (nu *(kx(k) * kx(k) &
@@ -247,27 +196,5 @@ module rhs
         
         
 !    end subroutine rhsAll
-
-    subroutine rhsDealias()
-    ! Set k > 2/3 k_max elements to 0
-            
-        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1) 
-            
-            if  (abs(kx(k)) >  (real(Nx, kind=8) / 2.0d0) &
-                             * (2.0d0 * alpha_x / 3.0d0)  &
-            .or. abs(ky(j)) >  (real(Ny, kind=8) / 2.0d0) &
-                             * (2.0d0 * alpha_y / 3.0d0)  &
-            .or. abs(kz(i)) >  (real(Nz, kind=8) / 2.0d0) &
-                             * (2.0d0 * alpha_z / 3.0d0)) then
-
-                  uhat(i, j, k) = cmplx(0.0d0, 0.0d0)
-                  vhat(i, j, k) = cmplx(0.0d0, 0.0d0)
-                  what(i, j, k) = cmplx(0.0d0, 0.0d0)          
-
-            end if
-            
-        end do; end do; end do
-        
-    end subroutine rhsDealias
     
 end module rhs

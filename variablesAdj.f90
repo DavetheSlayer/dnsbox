@@ -16,6 +16,15 @@ module variables
                                                           ux, uy, uz, &
                                                           vx, vy, vz, &
                                                           wx, wy, wz, &
+                                                          upptildex, &
+                                                          upptildey, &
+                                                          upptildez, &
+                                                          vpptildex, &
+                                                          vpptildey, &
+                                                          vpptildez, &
+                                                          wpptildex, &
+                                                          wpptildey, &
+                                                          wpptildez, &
 !                                                          uold, vold, wold, &
                                                           utemp, vtemp, wtemp,& 
                                                           temp_r 
@@ -30,12 +39,19 @@ module variables
                                                              nonlinuhat, &
                                                              nonlinvhat, &
                                                              nonlinwhat, &
-!                                                             rhsuhat, &
-!                                                             rhsvhat, &
-!                                                             rhswhat, &
+                                                             nonlinuhatadj, &
+                                                             nonlinvhatadj, &
+                                                             nonlinwhatadj, &
+                                                             upptildehat, &
+                                                             vpptildehat, &
+                                                             wpptildehat, &
+                                                             rhsadjuhat, &
+                                                             rhsadjvhat, &
+                                                             rhsadjwhat, &
                                                              temp_c, &
                                                              intFact, &
-                                                             phat
+                                                             phat, &
+                                                             phatadj
     ! real(p3dfft_type), dimension(:,:,:), allocatable    :: realtemp
     ! extraneous variables, for easy code reading:
     real(kind = 8) :: Lx, Ly, Lz
@@ -150,6 +166,15 @@ module variables
                   wx(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   wy(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   wz(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  upptildex(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  upptildey(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  upptildez(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  vpptildex(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  vpptildey(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  vpptildez(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  wpptildex(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  wpptildey(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  wpptildez(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
 !                  uold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
 !                  vold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
 !                  wold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
@@ -166,15 +191,22 @@ module variables
                   uhattemp(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   vhattemp(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   whattemp(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-!                  rhsuhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-!                  rhsvhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-!                  rhswhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  upptildehat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  vpptildehat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  wpptildehat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  rhsadjuhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  rhsadjvhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  rhsadjwhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinuhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinvhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinwhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  nonlinuhatadj(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  nonlinvhatadj(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  nonlinwhatadj(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   temp_c(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   intFact(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   phat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  phatadj(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   stat=AllocateStatus)
                     
         if(AllocateStatus .ne. 0) then

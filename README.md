@@ -8,6 +8,7 @@ Features to add (check when complete):
 - Dissipation [Complete on 2016-07-12]
 - Production [Complete on 2016-07-12]
 - Time step control [Complete on 2016-07-18] 
+- Adjoint descent []
 
 In python scripts:
 - integral length-scale [Complete on 2016-07-13]

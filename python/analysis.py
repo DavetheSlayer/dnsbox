@@ -2,7 +2,10 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-runDir = "../test/0019"
+runDir = "../test/0028"
+Ni = 0
+Nf = 270
+
 
 #Read simulation parameters:
 with open(runDir+"/info.dat") as fp:
@@ -16,7 +19,7 @@ with open(runDir+"/info.dat") as fp:
         if i == 6:
             Q = float(line.split()[2])
 
-ekin = np.loadtxt(runDir+"/Ekin.dat")
+ekin = np.loadtxt(runDir+"/Ekin.dat")[Ni:Nf]
 
 #Quantities:
 time = ekin[:, 0]

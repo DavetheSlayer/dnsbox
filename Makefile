@@ -9,7 +9,8 @@ LIBS = /cluster/home/nbudanur/local2/lib/libp3dfft.a \
 	   /clusterhome/nbudanur/local2/lib/libhdf5_fortran.a \
 	   /clusterhome/nbudanur/local2/lib/libhdf5.a -lz -ldl
 	   
-SOURCES = parameters.f90 variables.f90 rhs.f90 io.f90 dnsbox.f90 
+SOURCES = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsbox.f90 
+SOURCESADJ = parameters.f90 variablesAdj.f90 state.f90 rhsAdj.f90 io.f90 dnsboxAdj.f90 
 SOURCESRK = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxRK4.f90 
 SOURCESETDRK = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxETDRK4.f90 
 SOURCESETD = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxETD.f90 
@@ -19,9 +20,13 @@ SOURCESRHS = parameters.f90 variables.f90 rhs.f90 testrhs.f90
 SOURCESSPEC = parameters.f90 variables.f90 io.f90 rhs.f90 testspec.f90 
 SOURCESDEAL = parameters.f90 variables.f90 io.f90 rhs.f90 testdealias.f90 
 SOURCESEKIN = parameters.f90 variables.f90 rhs.f90 io.f90 testekin.f90 
+SOURCESSTATE = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 teststate.f90 
 
 ALL: $(SOURCES)
 	 ${COMPILER} -o dns.x $(FLAGS) $(SOURCES) $(LIBS)
+
+adj: $(SOURCESADJ)
+	 ${COMPILER} -o dnsadj.x $(FLAGS) $(SOURCESADJ) $(LIBS)
 
 clean:
 	rm -f *.o
@@ -53,3 +58,6 @@ deal: $(SOURCESDEAL)
 	 
 ekin: $(SOURCESEKIN)
 	 ${COMPILER} -o testEkin.x $(FLAGS) $(SOURCESEKIN) $(LIBS)
+
+state: $(SOURCESSTATE)
+	 ${COMPILER} -o testSkin.x $(FLAGS) $(SOURCESSTATE) $(LIBS)

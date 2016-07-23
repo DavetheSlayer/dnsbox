@@ -76,49 +76,42 @@ program nsbox
     do while (running_exist)
     n = n + 1
         
-        ! compute the nonlinear term for uhattemp:
-        call rhsNonlinear()
+        ! compute the rhsadj uhattemp:
+        call rhsAdj()
         
         ! Predictor
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
             
             ! Predicted next step for corrector calculation:
-            uhattemp(i, j, k) = intFact(i, j, k) &
-                              * (uhatold(i, j, k) + dt * nonlinuhat(i, j, k))
+            uhattemp(i, j, k) = uhatold(i, j, k) + dt * rhsadjuhat(i, j, k)
             
             ! Contribution to the final step from the predictor calculation:
-            uhat(i, j, k) = intFact(i, j, k) &
-                          * (uhatold(i, j, k) &
-                             + dt * nonlinuhat(i, j, k) * 0.5)
+            uhat(i, j, k) = uhatold(i, j, k) + dt * rhsadjuhat(i, j, k) * 0.5
             
             ! Predicted next step for corrector calculation:
-            vhattemp(i, j, k) = intFact(i, j, k) &
-                              * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k))
+            vhattemp(i, j, k) = vhatold(i, j, k) + dt * rhsadjvhat(i, j, k)
             
             ! Contribution to the final step from the predictor calculation:
-            vhat(i, j, k) = intFact(i, j, k) &
-                          * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5)
+            vhat(i, j, k) = vhatold(i, j, k) + dt * rhsadjvhat(i, j, k) * 0.5
                         
             ! Predicted next step for corrector calculation:
-            whattemp(i, j, k) = intFact(i, j, k) &
-                              * (whatold(i, j, k) + dt * nonlinwhat(i, j, k))
+            whattemp(i, j, k) = whatold(i, j, k) + dt * rhsadjwhat(i, j, k)
             
             ! Contribution to the final step from the predictor calculation:
-            what(i, j, k) = intFact(i, j, k) &
-                          * (whatold(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5)
+            what(i, j, k) = whatold(i, j, k) + dt * rhsadjwhat(i, j, k) * 0.5 
                         
         end do; end do; end do    
         
         ! compute the nonlinear term for uhattemp:
-        call rhsNonlinear()
+        call rhsAdj()
         
         ! Corrector
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
         
-            uhat(i, j, k) = uhat(i, j, k) + dt * nonlinuhat(i, j, k) * 0.5
-            vhat(i, j, k) = vhat(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5
-            what(i, j, k) = what(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5
-
+            uhat(i, j, k) = uhat(i, j, k) + dt * rhsadjuhat(i, j, k) * 0.5
+            vhat(i, j, k) = vhat(i, j, k) + dt * rhsadjvhat(i, j, k) * 0.5
+            what(i, j, k) = what(i, j, k) + dt * rhsadjwhat(i, j, k) * 0.5
+                
         end do; end do; end do    
             
         call stateProject()
