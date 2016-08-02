@@ -50,6 +50,21 @@ module rhs
         end do; end do; end do
         call p3dfft_btran_c2r (temp_c, wz, 'tff')
     end subroutine rhsDerivatives
+    
+    subroutine rhsVorticity()
+        ! computes vorticity
+        ! should be called after rhsDerivatives()
+        
+        do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+            
+            ! omegax:        
+            omegax(i, j, k) = wy(i, j, k) - vz(i, j, k)
+            omegay(i, j, k) = uz(i, j, k) - wx(i, j, k)
+            omegaz(i, j, k) = vx(i, j, k) - uy(i, j, k)
+                                
+        end do; end do; end do        
+        
+    end subroutine rhsVorticity
 
     subroutine rhsIntFact()
         ! Compute integrating factor for given time-step
@@ -63,67 +78,43 @@ module rhs
       
     subroutine rhsNonlinear()
         ! Compute nonlinear term of the Navier-Stokes equation 
-        ! in Fourier space for (u,v,w)hattemp:
+        ! in rotation form for (u,v,w)hattemp:
         
         call rhsDerivatives() 
-        
-!        if(proc_id .eq. 0) then 
-!            print *, 'check nonlin 1'
-!        endif    
+        call rhsVorticity()
             
         ! Configuration space velocity fields fields:
         call p3dfft_btran_c2r (uhattemp, utemp, 'tff') ! Now has a factor N^3
         call p3dfft_btran_c2r (vhattemp, vtemp, 'tff') 
         call p3dfft_btran_c2r (whattemp, wtemp, 'tff')        
-        
-!        if(proc_id .eq. 0) then 
-!            print *, 'check nonlin 2'
-!        endif    
-        
+
         do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
             
-            temp_r(i, j, k) = (utemp(i, j, k) * ux(i, j, k) &
-                             + vtemp(i, j, k) * uy(i, j, k) &
-                             + wtemp(i, j, k) * uz(i, j, k)) &
+            temp_r(i, j, k) = (omegay(i, j, k) * wtemp(i, j, k) &
+                             - omegaz(i, j, k) * vtemp(i, j, k)) &
                              * scalemodes ! divide by N^3
             
         end do; end do; end do        
-                   
-!        if(proc_id .eq. 0) then 
-!            print *, 'check nonlin 3.1.1'
-!        endif               
                      
         call p3dfft_ftran_r2c (temp_r, nonlinuhat, 'fft')
-           
-!        if(proc_id .eq. 0) then 
-!            print *, 'check nonlin 3.1.2'
-!        endif               
                      
         do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
         
-            temp_r(i, j, k) = (utemp(i, j, k) * vx(i, j, k) &
-                    + vtemp(i, j, k) * vy(i, j, k) &
-                    + wtemp(i, j, k) * vz(i, j, k)) * scalemodes
+            temp_r(i, j, k) = (omegaz(i, j, k) * utemp(i, j, k) &
+                             - omegax(i, j, k) * wtemp(i, j, k)) &
+                             * scalemodes ! divide by N^3
             
         end do; end do; end do        
         call p3dfft_ftran_r2c (temp_r, nonlinvhat, 'fft')
-           
-!        if(proc_id .eq. 0) then 
-!            print *, 'check nonlin 3.2'
-!        endif               
         
         do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
         
-            temp_r(i, j, k) = (utemp(i, j, k) * wx(i, j, k) &
-                    + vtemp(i, j, k) * wy(i, j, k) &
-                    + wtemp(i, j, k) * wz(i, j, k)) * scalemodes
+            temp_r(i, j, k) = (omegax(i, j, k) * vtemp(i, j, k) &
+                             - omegay(i, j, k) * utemp(i, j, k)) &
+                             * scalemodes ! divide by N^3
             
         end do; end do; end do        
         call p3dfft_ftran_r2c (temp_r, nonlinwhat, 'fft')
-        
-!        if(proc_id .eq. 0) then 
-!            print *, 'check nonlin 3.3'
-!        endif               
                 
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1) 
             ! k -> kx - index, j -> ky - index, i -> kz - index
@@ -149,6 +140,7 @@ module rhs
                     eps = 0.0d0
                 end if                
                 
+                
                 phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
                                         + ky(j) * nonlinvhat(i, j, k) & 
                                         + kz(i) * nonlinwhat(i, j, k)) & 
@@ -167,10 +159,6 @@ module rhs
             end if
             
         end do; end do; end do
-
-!        if(proc_id .eq. 0) then 
-!            print *, 'check nonlin 4'
-!        endif               
         
     end subroutine rhsNonlinear
     

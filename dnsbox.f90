@@ -211,6 +211,7 @@ program nsbox
     
 	deallocate(x, y, z, time, mychg, allchg, kSpec, myEspec, Espec, &
                u, v, w, ux, uy, uz, vx, vy, vz, wx, wy, wz, &
+               omegax, omegay, omegaz, &
                utemp, vtemp, wtemp,&
                temp_r, kx, ky, kz, uhat, vhat, what,&
                uhattemp, vhattemp, whattemp,&

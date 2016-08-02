@@ -16,6 +16,9 @@ module variables
                                                           ux, uy, uz, &
                                                           vx, vy, vz, &
                                                           wx, wy, wz, &
+                                                          omegax, &
+                                                          omegay, &
+                                                          omegaz, &
 !                                                          uold, vold, wold, &
                                                           utemp, vtemp, wtemp,& 
                                                           temp_r 
@@ -150,6 +153,9 @@ module variables
                   wx(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   wy(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
                   wz(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  omegax(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  omegay(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
+                  omegaz(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
 !                  uold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
 !                  vold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
 !                  wold(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &
