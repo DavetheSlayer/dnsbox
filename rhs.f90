@@ -118,15 +118,22 @@ module rhs
                 
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1) 
             ! k -> kx - index, j -> ky - index, i -> kz - index
-            
-            if  ((abs(kx(k)) .gt.  (real(Nx, kind=8) / 2.0d0) &
-                                 * (2.0d0 * alpha_x / 3.0d0))  &
-            .or. (abs(ky(j)) .gt.  (real(Ny, kind=8) / 2.0d0) &
-                                 * (2.0d0 * alpha_y / 3.0d0))  &
-            .or. (abs(kz(i)) .gt.  (real(Nz, kind=8) / 2.0d0) &
-                                 * (2.0d0 * alpha_z / 3.0d0))) then
+
             ! 2/3 dealiasing:
             
+            ! Cubic truncation:
+!            if  ((abs(kx(k)) .gt.  (real(Nx, kind=8) / 2.0d0) &
+!                                 * (2.0d0 * alpha_x / 3.0d0))  &
+!            .or. (abs(ky(j)) .gt.  (real(Ny, kind=8) / 2.0d0) &
+!                                 * (2.0d0 * alpha_y / 3.0d0))  &
+!            .or. (abs(kz(i)) .gt.  (real(Nz, kind=8) / 2.0d0) &
+!                                 * (2.0d0 * alpha_z / 3.0d0))) then
+            
+            ! Isotropic truncation:
+            if(abs(kx(k)) ** 2.0d0 + abs(ky(j)) ** 2.0d0 + abs(kz(i)) ** 2.0d0 & 
+               .gt.  ((real(Nx, kind=8) / 2.0d0) &
+                    * (2.0d0 * alpha_x / 3.0d0)) ** 2) then
+
                       nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
                       nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
                       nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)          

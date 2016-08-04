@@ -33,6 +33,9 @@ module variables
                                                              nonlinuhat, &
                                                              nonlinvhat, &
                                                              nonlinwhat, &
+                                                             nonlinuhatold, &
+                                                             nonlinvhatold, &
+                                                             nonlinwhatold, &
 !                                                             rhsuhat, &
 !                                                             rhsvhat, &
 !                                                             rhswhat, &
@@ -88,12 +91,17 @@ module variables
         Ly = 2 * pi / alpha_y
         Lz = 2 * pi / alpha_z
         
-        Nspec = int(sqrt(((real(Nx, kind=8) / 2.0d0) &
-                         * (2.0d0 * alpha_x / 3.0d0)) ** 2  + &
-                         ((real(Ny, kind=8) / 2.0d0) &
-                         * (2.0d0 * alpha_y / 3.0d0)) ** 2  + &
-                         ((real(Nz, kind=8) / 2.0d0) &
-                         * (2.0d0 * alpha_z / 3.0d0)) ** 2) / Deltak) - 1
+        ! Cubic truncation:
+!        Nspec = int(sqrt(((real(Nx, kind=8) / 2.0d0) &
+!                         * (2.0d0 * alpha_x / 3.0d0)) ** 2  + &
+!                         ((real(Ny, kind=8) / 2.0d0) &
+!                         * (2.0d0 * alpha_y / 3.0d0)) ** 2  + &
+!                         ((real(Nz, kind=8) / 2.0d0) &
+!                         * (2.0d0 * alpha_z / 3.0d0)) ** 2) / Deltak) - 1
+    
+        ! Isotropic truncation:
+        Nspec = int(((real(Nx, kind=8) / 2.0d0) * (2.0d0 * alpha_x / 3.0d0)) &
+                    / Deltak) - 1
         
         if(proc_id.eq.0) then
             
@@ -178,6 +186,9 @@ module variables
                   nonlinuhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinvhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinwhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  nonlinuhatold(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  nonlinvhatold(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  nonlinwhatold(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   temp_c(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   intFact(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   phat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
