@@ -30,6 +30,11 @@ program nsbox
         ! Set the analytic solution as initial condition
         call stateInitAnalytic()
         
+    elseif ( eig ) then 
+        
+        ! Set the eigenvector as initial condition
+        call stateInitEig()
+        
     else
         ! Load initial state:
         call io_loadState('state0000.h5')
@@ -243,7 +248,8 @@ program nsbox
         ! Terminate if maximum time steps are reached or the Courant number 
         ! exceeds the allowed limit:
         if ((tStepFix .eqv. .false.) .and. & 
-           ((Courant .gt. CourantMax) .or. (Courant .lt. CourantMin))) then
+           ((Courant .gt. CourantMax) .or. &
+            (Courant .lt. CourantMin .and. dt .lt. tStepMax))) then
             ! Courant number outside the desired range, change the time step:
             call setTimeStep()
             
@@ -323,6 +329,11 @@ subroutine setTimeStep()
     ! This subroutine should be called after the stats are computed
     
     dt = ((CourantMax + CourantMin) / (2.0d0 * Courant) ) * dt
+    
+    if (dt > tStepMax) then
+        dt = tStepMax
+    end if
+    
     call rhsIntFact() ! Recompute the integration factor with the new time step
     call io_Courant()
 	if (proc_id.eq.0) then

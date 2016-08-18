@@ -6,7 +6,7 @@ module variables
     include 'mpif.h'
 
     !simulation variables:
-    real(kind=8)            :: dt= 0.001d0            ! Time step size
+    real(kind=8)            :: dt= 0.01d0             ! Time step size
     real(kind=8), dimension(:), allocatable     :: x, y, z, time, mychg, allchg
     real(kind=8)            :: scalemodes, chg, factor!, scalemodessquare
     real(kind=8)            :: eps                    ! epsilon to avoid divs
@@ -22,7 +22,7 @@ module variables
 !                                                          uold, vold, wold, &
                                                           utemp, vtemp, wtemp,& 
                                                           temp_r 
-    complex(kind=8), dimension(:), allocatable      :: kx, ky, kz
+    complex(kind=8), dimension(:), allocatable      :: kx, ky, kz, linearterm
     complex(p3dfft_type), dimension(:, :, :), allocatable :: uhat, vhat, what,&
                                                              uhattemp, &
                                                              vhattemp, &
@@ -47,7 +47,7 @@ module variables
     real(kind = 8) :: Lx, Ly, Lz
         
     !counters and logicals:
-    integer(kind=4) :: ind, iol, i, j, k, n, t, AllocateStatus
+    integer(kind=4) :: ind, iter, i, j, k, n, t, AllocateStatus
     logical         :: running_exist
   
     !parallelization variables:
