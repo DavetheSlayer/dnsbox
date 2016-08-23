@@ -131,29 +131,27 @@ module rhs
             
             ! Isotropic truncation:
             if(abs(kx(k)) ** 2.0d0 + abs(ky(j)) ** 2.0d0 + abs(kz(i)) ** 2.0d0 & 
-               .gt.  ((real(Nx, kind=8) / 2.0d0) &
+               .ge.  ((real(Nx, kind=8) / 2.0d0) &
                     * (2.0d0 * alpha_x / 3.0d0)) ** 2) then
 
                       nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
                       nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
                       nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)          
                 
-            else 
-                if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
-                   (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
-                   (kz(i) .eq. cmplx(0.0d0, 0.0d0))) then
-                    eps = 0.1d0 ** 13
-                else
-                    eps = 0.0d0
-                end if                
-                
-                
+            else if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
+                    (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
+                    (kz(i) .eq. cmplx(0.0d0, 0.0d0))) then
+                    !eps = 0.1d0 ** 13
+                    nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                    nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                    nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)                    
+            else
                 phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
                                         + ky(j) * nonlinvhat(i, j, k) & 
                                         + kz(i) * nonlinwhat(i, j, k)) & 
                                          /  (kx(k) * kx(k) &
                                            + ky(j) * ky(j) & 
-                                           + kz(i) * kz(i) + eps)
+                                           + kz(i) * kz(i))
                 
                 ! from n_k(u) to N_k(u)
                 nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
@@ -162,8 +160,8 @@ module rhs
                                       - ky(j) * phat(i, j, k)
                 nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
                                       - kz(i) * phat(i, j, k)
-            
-            end if
+                    
+            end if                
             
         end do; end do; end do
         

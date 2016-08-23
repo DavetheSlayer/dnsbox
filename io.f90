@@ -4,7 +4,7 @@
 !**************************************************************************
  module io
 !**************************************************************************
-    use variables
+    use state
     use rhs
     use hdf5
     
@@ -537,33 +537,11 @@ contains
         
     end subroutine io_Courant
     
-    subroutine io_saveSpectrum()
-        ! Save window-averaged spectrum
-        myEspec = 0d0
-        
-        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-            
-            ! Find which window current k belongs to:
-            absk = sqrt(real(conjg(kx(k)) * kx(k) &
-                           + conjg(ky(j)) * ky(j) &
-                           + conjg(kz(i)) * kz(i))) ! |k|^2
-            if (absk < real(int(absk / Deltak)) + 0.5 * Deltak) then
-                nk = int(absk / Deltak)
-            else
-                nk = int(absk / Deltak) + 1
-            end if 
-            
-            if (nk > Nspec .or. nk .eq. 0) cycle
-            
-            myEspec(nk) = myEspec(nk) &
-                        + (+ real(conjg(uhat(i, j, k)) * uhat(i, j, k)) &
-                           + real(conjg(vhat(i, j, k)) * vhat(i, j, k)) &
-                           + real(conjg(what(i, j, k)) * what(i, j, k))) &
-                          * (scalemodes ** 2) / Deltak
-        end do; end do; end do               
+    
 
-        call mpi_allreduce(myEspec, Espec, Nspec, mpi_double_precision, &
-                           mpi_sum, mpi_comm_world, ierr)
+    subroutine io_saveSpectrum()
+        
+        call stateComputeSpectrum()
        
         if(proc_id.eq.0) then
         
