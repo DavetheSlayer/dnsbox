@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-runDir = "../test/0053/continue"
-Ni = 100
+runDir = "../test/0017"
+Ni = 0
 Nf = -1
 
 #Read simulation parameters:

@@ -98,10 +98,18 @@ module variables
 !                         * (2.0d0 * alpha_y / 3.0d0)) ** 2  + &
 !                         ((real(Nz, kind=8) / 2.0d0) &
 !                         * (2.0d0 * alpha_z / 3.0d0)) ** 2) / Deltak) - 1
-    
-        ! Isotropic truncation:
-        Nspec = int(((real(Nx, kind=8) / 2.0d0) * (2.0d0 * alpha_x / 3.0d0)) &
-                    / Deltak) - 1
+        if (spherical) then
+            ! Isotropic truncation:
+            Nspec = int(((real(Nx, kind=8) / 2.0d0) & 
+                        * (2.0d0 * alpha_x / 3.0d0)) / Deltak) - 1
+        else
+            Nspec = int(sqrt(((real(Nx, kind=8) / 2.0d0) &
+                          * (2.0d0 * alpha_x / 3.0d0)) ** 2  + &
+                          ((real(Ny, kind=8) / 2.0d0) &
+                          * (2.0d0 * alpha_y / 3.0d0)) ** 2  + &
+                          ((real(Nz, kind=8) / 2.0d0) &
+                          * (2.0d0 * alpha_z / 3.0d0)) ** 2) / Deltak) - 1
+        end if
         
         if(proc_id.eq.0) then
             

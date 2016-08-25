@@ -129,23 +129,29 @@ module rhs
 !            .or. (abs(kz(i)) .gt.  (real(Nz, kind=8) / 2.0d0) &
 !                                 * (2.0d0 * alpha_z / 3.0d0))) then
             
-            ! Isotropic truncation:
-            if(abs(kx(k)) ** 2.0d0 + abs(ky(j)) ** 2.0d0 + abs(kz(i)) ** 2.0d0 & 
-               .ge.  ((real(Nx, kind=8) / 2.0d0) &
-                    * (2.0d0 * alpha_x / 3.0d0)) ** 2) then
+            ! Dealiasing:
+            if((spherical .and. &
+               (abs(kx(k)) ** 2.0d0 &
+              + abs(ky(j)) ** 2.0d0 &
+              + abs(kz(i)) ** 2.0d0 & 
+              .ge. ((real(Nx, kind=8) / 2.0d0) &
+                  * (2.0d0 * alpha_x / 3.0d0)) ** 2)) .or. &
+               (abs(kx(k)) .ge. (real(Nx, kind=8) / 2.0d0) &
+                              * (2.0d0 * alpha_x / 3.0d0)  &
+           .or. abs(ky(j)) .ge. (real(Ny, kind=8) / 2.0d0) &
+                              * (2.0d0 * alpha_y / 3.0d0)  &
+           .or. abs(kz(i)) .ge. (real(Nz, kind=8) / 2.0d0) &
+                              * (2.0d0 * alpha_z / 3.0d0)) .or. &
+               ((kx(k) .eq. cmplx(0.0d0, 0.0d0)) &
+          .and. (ky(j) .eq. cmplx(0.0d0, 0.0d0)) &
+          .and. (kz(i) .eq. cmplx(0.0d0, 0.0d0)))) then
 
-                      nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
-                      nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
-                      nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)          
-                
-            else if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
-                    (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
-                    (kz(i) .eq. cmplx(0.0d0, 0.0d0))) then
-                    !eps = 0.1d0 ** 13
-                    nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
-                    nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
-                    nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)                    
+                nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)          
+                    
             else
+            
                 phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
                                         + ky(j) * nonlinvhat(i, j, k) & 
                                         + kz(i) * nonlinwhat(i, j, k)) & 
@@ -166,6 +172,93 @@ module rhs
         end do; end do; end do
         
     end subroutine rhsNonlinear
+    
+    subroutine rhsNonlinearConv()
+        ! Compute nonlinear term of the Navier-Stokes equation 
+        ! in Fourier space for (u,v,w)hattemp:
+        ! in convective form
+        
+        call rhsDerivatives() 
+            
+        ! Configuration space velocity fields fields:
+        call p3dfft_btran_c2r (uhattemp, utemp, 'tff') ! Now has a factor N^3
+        call p3dfft_btran_c2r (vhattemp, vtemp, 'tff') 
+        call p3dfft_btran_c2r (whattemp, wtemp, 'tff')        
+        
+        do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+            
+            temp_r(i, j, k) = (utemp(i, j, k) * ux(i, j, k) &
+                             + vtemp(i, j, k) * uy(i, j, k) &
+                             + wtemp(i, j, k) * uz(i, j, k)) &
+                             * scalemodes ! divide by N^3
+            
+        end do; end do; end do        
+                     
+        call p3dfft_ftran_r2c (temp_r, nonlinuhat, 'fft')
+                     
+        do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+        
+            temp_r(i, j, k) = (utemp(i, j, k) * vx(i, j, k) &
+                    + vtemp(i, j, k) * vy(i, j, k) &
+                    + wtemp(i, j, k) * vz(i, j, k)) * scalemodes
+            
+        end do; end do; end do        
+        call p3dfft_ftran_r2c (temp_r, nonlinvhat, 'fft')
+        
+        do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+        
+            temp_r(i, j, k) = (utemp(i, j, k) * wx(i, j, k) &
+                    + vtemp(i, j, k) * wy(i, j, k) &
+                    + wtemp(i, j, k) * wz(i, j, k)) * scalemodes
+            
+        end do; end do; end do        
+        call p3dfft_ftran_r2c (temp_r, nonlinwhat, 'fft')
+        
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1) 
+            ! k -> kx - index, j -> ky - index, i -> kz - index
+            
+            ! Dealiasing:
+            if((spherical .and. &
+               (abs(kx(k)) ** 2.0d0 &
+              + abs(ky(j)) ** 2.0d0 &
+              + abs(kz(i)) ** 2.0d0 & 
+              .ge. ((real(Nx, kind=8) / 2.0d0) &
+                  * (2.0d0 * alpha_x / 3.0d0)) ** 2)) .or. &
+               (abs(kx(k)) .ge. (real(Nx, kind=8) / 2.0d0) &
+                              * (2.0d0 * alpha_x / 3.0d0)  &
+           .or. abs(ky(j)) .ge. (real(Ny, kind=8) / 2.0d0) &
+                              * (2.0d0 * alpha_y / 3.0d0)  &
+           .or. abs(kz(i)) .ge. (real(Nz, kind=8) / 2.0d0) &
+                              * (2.0d0 * alpha_z / 3.0d0)) .or. &
+               ((kx(k) .eq. cmplx(0.0d0, 0.0d0)) &
+          .and. (ky(j) .eq. cmplx(0.0d0, 0.0d0)) &
+          .and. (kz(i) .eq. cmplx(0.0d0, 0.0d0)))) then
+
+                nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)          
+                    
+            else
+            
+                phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
+                                        + ky(j) * nonlinvhat(i, j, k) & 
+                                        + kz(i) * nonlinwhat(i, j, k)) & 
+                                         /  (kx(k) * kx(k) &
+                                           + ky(j) * ky(j) & 
+                                           + kz(i) * kz(i) + 0.1d0 ** 13)
+                
+                nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
+                                      - kx(k) * phat(i, j, k)
+                nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
+                                      - ky(j) * phat(i, j, k)
+                nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
+                                      - kz(i) * phat(i, j, k)
+            
+            end if
+            
+        end do; end do; end do
+
+    end subroutine rhsNonlinearConv    
     
 !    subroutine rhsAll()
 !        ! Compute RHS for uhattemp

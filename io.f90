@@ -86,6 +86,11 @@ contains
         if(proc_id.eq.0) then
             close(io_Ekin)
         end if     
+        if (proc_id.eq.0) then
+            print *,'Saving the final state'
+        end if        
+        call io_saveState()
+        
     end subroutine io_finalize
     
     subroutine io_saveState()

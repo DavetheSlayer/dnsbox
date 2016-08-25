@@ -40,7 +40,7 @@ program nsbox
         ! Load initial state:
         call io_loadState('state0000.h5')
     end if
-        
+
     call p3dfft_ftran_r2c (u, uhat, 'fft')
     call p3dfft_ftran_r2c (v, vhat, 'fft')
     call p3dfft_ftran_r2c (w, what, 'fft')
@@ -84,136 +84,56 @@ program nsbox
     do while (running_exist)
     n = n + 1
         
-        if (timestepper .eq. 1 .or. n .eq. 1) then
+        ! compute the nonlinear term for uhattemp:
+        call rhsNonlinear()
         
-            ! take a predictor-corrector step
-            ! compute the nonlinear term for uhattemp:
-            call rhsNonlinear()
-            
-            ! Predictor
-            do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-                
-                ! Predicted next step for corrector calculation:
-                uhattemp(i, j, k) = intFact(i, j, k) &
-                                  * (uhatold(i, j, k) + dt * nonlinuhat(i, j, k))
-                
-                ! Contribution to the final step from the predictor calculation:
-                uhat(i, j, k) = intFact(i, j, k) &
-                              * (uhatold(i, j, k) &
-                                 + dt * nonlinuhat(i, j, k) * 0.5)
-                
-                ! Predicted next step for corrector calculation:
-                vhattemp(i, j, k) = intFact(i, j, k) &
-                                  * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k))
-                
-                ! Contribution to the final step from the predictor calculation:
-                vhat(i, j, k) = intFact(i, j, k) &
-                              * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5)
-                            
-                ! Predicted next step for corrector calculation:
-                whattemp(i, j, k) = intFact(i, j, k) &
-                                  * (whatold(i, j, k) + dt * nonlinwhat(i, j, k))
-                
-                ! Contribution to the final step from the predictor calculation:
-                what(i, j, k) = intFact(i, j, k) &
-                              * (whatold(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5)
-                
-                if (timestepper .eq. 2) then
-                    
-                    nonlinuhatold(i, j, k) = nonlinuhat(i, j, k)
-                    nonlinvhatold(i, j, k) = nonlinvhat(i, j, k)
-                    nonlinwhatold(i, j, k) = nonlinwhat(i, j, k)
-                    
-                end if
-                            
-            end do; end do; end do    
-            
-            ! compute the nonlinear term for uhattemp:
-            call rhsNonlinear()
-            
-            ! Corrector
-            do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-            
-                uhat(i, j, k) = uhat(i, j, k) + dt * nonlinuhat(i, j, k) * 0.5
-                vhat(i, j, k) = vhat(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5
-                what(i, j, k) = what(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5
-
-            end do; end do; end do    
-        
-        else if (timestepper .eq. 2) then
-            
-            ! take a second order Adams-Bashfort step
-            
-            ! compute nonlinear term for uhattemp = u_n:
-            call rhsNonlinear()
-            
-            do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-                
-                uhat(i, j, k) = intfact(i, j, k) * uhat(i, j, k) & 
-                     + 0.5d0 * (time(n) + time(n) + dt - 2.0d0 * time(n-1)) &
-                       * exp((nu * (kx(k) * kx(k) &
-                                  + ky(j) * ky(j) &
-                                  + kz(i) * kz(i)) + Q) * dt) & 
-                       * nonlinuhat(i, j, k) &
-                     + 0.5d0 * (2.0d0 * time(n) - time(n) - dt - time(n-1)) &
-                       * exp((nu * (kx(k) * kx(k) &
-                                  + ky(j) * ky(j) &
-                                  + kz(i) * kz(i)) + Q) &
-                             * (dt + time(n) - time(n - 1))) & 
-                       * nonlinuhatold(i, j, k)                              
-                
-                vhat(i, j, k) = intfact(i, j, k) * vhat(i, j, k) & 
-                     + 0.5d0 * (time(n) + time(n) + dt - 2.0d0 * time(n-1)) &
-                       * exp((nu * (kx(k) * kx(k) &
-                                  + ky(j) * ky(j) &
-                                  + kz(i) * kz(i)) + Q) * dt) & 
-                       * nonlinvhat(i, j, k) &
-                     + 0.5d0 * (2.0d0 * time(n) - time(n) - dt - time(n-1)) &
-                       * exp((nu * (kx(k) * kx(k) &
-                                  + ky(j) * ky(j) &
-                                  + kz(i) * kz(i)) + Q) &
-                             * (dt + time(n) - time(n - 1))) & 
-                       * nonlinvhatold(i, j, k)                              
-                
-                what(i, j, k) = intfact(i, j, k) * what(i, j, k) & 
-                     + 0.5d0 * (time(n) + time(n) + dt - 2.0d0 * time(n-1)) &
-                       * exp((nu * (kx(k) * kx(k) &
-                                  + ky(j) * ky(j) &
-                                  + kz(i) * kz(i)) + Q) * dt) & 
-                       * nonlinwhat(i, j, k) &
-                     + 0.5d0 * (2.0d0 * time(n) - time(n) - dt - time(n-1)) &
-                       * exp((nu * (kx(k) * kx(k) &
-                                  + ky(j) * ky(j) &
-                                  + kz(i) * kz(i)) + Q) &
-                             * (dt + time(n) - time(n - 1))) & 
-                       * nonlinwhatold(i, j, k)                              
-                
-            end do; end do; end do    
-            
-        end if
-        
-        !call stateProject()
-        !call stateDealias()
-        ! Copy
+        ! Predictor
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+            
+            ! Predicted next step for corrector calculation:
+            uhattemp(i, j, k) = intFact(i, j, k) &
+                              * (uhatold(i, j, k) + dt * nonlinuhat(i, j, k))
+            
+            ! Contribution to the final step from the predictor calculation:
+            uhat(i, j, k) = intFact(i, j, k) &
+                          * (uhatold(i, j, k) &
+                             + dt * nonlinuhat(i, j, k) * 0.5)
+            
+            ! Predicted next step for corrector calculation:
+            vhattemp(i, j, k) = intFact(i, j, k) &
+                              * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k))
+            
+            ! Contribution to the final step from the predictor calculation:
+            vhat(i, j, k) = intFact(i, j, k) &
+                          * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5)
+                        
+            ! Predicted next step for corrector calculation:
+            whattemp(i, j, k) = intFact(i, j, k) &
+                              * (whatold(i, j, k) + dt * nonlinwhat(i, j, k))
+            
+            ! Contribution to the final step from the predictor calculation:
+            what(i, j, k) = intFact(i, j, k) &
+                          * (whatold(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5)
+                        
+        end do; end do; end do    
+        
+        ! compute the nonlinear term for uhattemp:
+        call rhsNonlinear()
+        
+        ! Corrector
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+        
+            uhat(i, j, k) = uhat(i, j, k) + dt * nonlinuhat(i, j, k) * 0.5
+            vhat(i, j, k) = vhat(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5
+            what(i, j, k) = what(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5
         
             uhattemp(i, j, k) = uhat(i, j, k)
             vhattemp(i, j, k) = vhat(i, j, k)
             whattemp(i, j, k) = what(i, j, k)
             
-            if (timestepper .eq. 1) then
-            
-                uhatold(i, j, k) = uhat(i, j, k) 
-                vhatold(i, j, k) = vhat(i, j, k) 
-                whatold(i, j, k) = what(i, j, k) 
-                
-            elseif (timestepper .eq. 2 .and. n .gt. 1) then
-                
-                nonlinuhatold(i, j, k) = nonlinuhat(i, j, k)
-                nonlinvhatold(i, j, k) = nonlinvhat(i, j, k)
-                nonlinwhatold(i, j, k) = nonlinwhat(i, j, k)
-                
-            end if
+            uhatold(i, j, k) = uhat(i, j, k) 
+            vhatold(i, j, k) = vhat(i, j, k) 
+            whatold(i, j, k) = what(i, j, k) 
                 
         end do; end do; end do    
 
@@ -222,9 +142,9 @@ program nsbox
         if (proc_id.eq.0) then
             print *, 'time', time(n+1)
         end if
-      
+        
         if(modulo(n,iSaveRate1)==0) then
-          
+                
             ! Back to the configuration space:
             call p3dfft_btran_c2r (uhat, u, 'tff')
             call p3dfft_btran_c2r (vhat, v, 'tff')
@@ -237,7 +157,7 @@ program nsbox
                 w(i, j, k) = w(i, j, k) * scalemodes
                 
             end do; end do; end do
-            
+
             call io_saveSpectrum()
             call io_saveState()
         end if
@@ -288,19 +208,13 @@ program nsbox
             
     end do
     
-    if (analytic) then
-        call stateCheckError()
-    end if 
-    
 	deallocate(x, y, z, time, mychg, allchg, kSpec, myEspec, Espec, &
                u, v, w, ux, uy, uz, vx, vy, vz, wx, wy, wz, &
-               omegax, omegay, omegaz, &
                utemp, vtemp, wtemp,&
                temp_r, kx, ky, kz, uhat, vhat, what,&
                uhattemp, vhattemp, whattemp,&
                uhatold, vhatold, whatold,&
                nonlinuhat, nonlinvhat, nonlinwhat, temp_c,&
-               nonlinuhatold, nonlinvhatold, nonlinwhatold, &
                intFact, phat, stat=AllocateStatus)		
 	if (AllocateStatus .ne. 0) stop
 	if (proc_id.eq.0) then
@@ -330,11 +244,6 @@ subroutine setTimeStep()
     ! This subroutine should be called after the stats are computed
     
     dt = ((CourantMax + CourantMin) / (2.0d0 * Courant) ) * dt
-    
-    if (dt > tStepMax) then
-        dt = tStepMax
-    end if
-    
     call rhsIntFact() ! Recompute the integration factor with the new time step
     call io_Courant()
 	if (proc_id.eq.0) then

@@ -10,6 +10,7 @@ LIBS = /cluster/home/nbudanur/local2/lib/libp3dfft.a \
 	   /clusterhome/nbudanur/local2/lib/libhdf5.a -lz -ldl
 	   
 SOURCES = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsbox.f90 
+SOURCESHEUN = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboxheun.f90 
 SOURCESADJ = parameters.f90 variablesAdj.f90 state.f90 rhsAdj.f90 io.f90 dnsboxAdj.f90 
 SOURCESRK = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxRK4.f90 
 SOURCESETDRK = parameters.f90 variables.f90 io.f90 rhs.f90 nsboxETDRK4.f90 
@@ -61,3 +62,6 @@ ekin: $(SOURCESEKIN)
 
 state: $(SOURCESSTATE)
 	 ${COMPILER} -o testSkin.x $(FLAGS) $(SOURCESSTATE) $(LIBS)
+
+heun: $(SOURCESHEUN)
+	  ${COMPILER} -o dns.x $(FLAGS) $(SOURCESHEUN) $(LIBS)
