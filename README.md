@@ -15,4 +15,9 @@ In python scripts:
 - Taylor microscale [Complete on 2016-07-13]
 - Re_\lambda [Complete on 2016-07-13]
 - Re_turb [Complete on 2016-07-13]
-- Flow visualization [ ]
+- Flow visualization [Complete on 2016-08-26]
+
+Library requirements:
+- openmpi
+- p3dfft
+- hdf5

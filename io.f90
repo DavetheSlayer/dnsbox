@@ -32,6 +32,10 @@
     character(4) :: cnum        ! Save count
     real(kind=8) :: scalekx   !scaling to avoid counting kx=0 modes twice
     
+    ! Variables for reading parameters:
+    integer(kind=4) :: io_Nx, io_Ny, io_Nz
+    real(kind=8) :: io_alpha_x, io_alpha_y, io_alpha_z
+    
 contains
     
     subroutine io_init()
@@ -273,6 +277,180 @@ contains
     
     end subroutine io_saveState
     
+    subroutine io_saveVorticity()
+        !
+        ! Saves the current state
+        ! Based on:
+        !
+        ! https://www.hdfgroup.org/HDF5/Tutor/phypechk.html
+        !
+        
+        if(proc_id .eq. 0) then 
+            print*, 'saving vorticity'
+        end if     
+        !
+        ! Setup file access property list with parallel I/O access
+        !
+        call h5pcreate_f(H5P_FILE_ACCESS_F, io_plist_id, io_error)
+        call h5pset_fapl_mpio_f(io_plist_id, mpi_comm_world, mpi_info_null, & 
+                                io_error)
+        !
+        ! Create the file collectively
+        !
+        call h5fcreate_f('vorticity.h5', H5F_ACC_TRUNC_F, io_file_id, &
+                         io_error, access_prp = io_plist_id)
+        call h5pclose_f(io_plist_id, io_error)
+        !
+        ! Create the data space for the  dataset. 
+        !        
+        call h5screate_simple_f(io_rank, io_dimsf, io_filespace, io_error)
+        call h5screate_simple_f(io_rank, io_chunk_dims, io_memspace, io_error)
+        
+        !
+        ! Create chunked dataset
+        ! 
+        call h5pcreate_f(H5P_DATASET_CREATE_F, io_plist_id, io_error)
+        call h5pset_chunk_f(io_plist_id, io_rank, io_chunk_dims, io_error)
+        call h5dcreate_f (io_file_id, 'omegax', H5T_NATIVE_DOUBLE, io_filespace, &
+                          io_dset_id, io_error, io_plist_id)
+        call h5sclose_f(io_filespace, io_error)
+        !
+        ! Select hyperslab in the file  
+        !
+        call h5dget_space_f(io_dset_id, io_filespace, io_error)
+        call h5sselect_hyperslab_f (io_filespace, H5S_SELECT_SET_F, &
+                                    io_offset, io_count, io_error, &
+                                    io_stride, io_block)
+        !
+        ! Create property list for collective dataset write
+        !
+        call h5pcreate_f (H5P_DATASET_XFER_F, io_plist_id, io_error)
+        call h5pset_dxpl_mpio_f(io_plist_id, H5FD_MPIO_COLLECTIVE_F, io_error)
+        !
+        ! Write the dataset collectively
+        !
+        call h5dwrite_f (io_dset_id, H5T_NATIVE_DOUBLE, &
+                  omegax(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &  
+                  io_dimsfi, io_error, file_space_id = io_filespace, &
+                  mem_space_id = io_memspace, xfer_prp = io_plist_id)
+        !
+        ! Close dataspaces
+        !
+        call h5sclose_f(io_filespace, io_error)
+        call h5sclose_f(io_memspace, io_error)
+        !
+        ! Close the dataset
+        !
+        call h5dclose_f (io_dset_id, io_error)        
+
+        !
+        ! Close property list
+        ! 
+        call h5pclose_f(io_plist_id, io_error)
+        
+        ! REPEAT FOR v:
+        !
+        ! Create the data space for the  dataset. 
+        !        
+        call h5screate_simple_f(io_rank, io_dimsf, io_filespace, io_error)
+        call h5screate_simple_f(io_rank, io_chunk_dims, io_memspace, io_error)
+        
+        !
+        ! Create chunked dataset
+        ! 
+        call h5pcreate_f(H5P_DATASET_CREATE_F, io_plist_id, io_error)
+        call h5pset_chunk_f(io_plist_id, io_rank, io_chunk_dims, io_error)
+        call h5dcreate_f (io_file_id, 'omegay', H5T_NATIVE_DOUBLE, io_filespace, &
+                          io_dset_id, io_error, io_plist_id)
+        call h5sclose_f(io_filespace, io_error)
+        !
+        ! Select hyperslab in the file  
+        !
+        call h5dget_space_f(io_dset_id, io_filespace, io_error)
+        call h5sselect_hyperslab_f (io_filespace, H5S_SELECT_SET_F, &
+                                    io_offset, io_count, io_error, &
+                                    io_stride, io_block)
+        !
+        ! Create property list for collective dataset write
+        !
+        call h5pcreate_f (H5P_DATASET_XFER_F, io_plist_id, io_error)
+        call h5pset_dxpl_mpio_f(io_plist_id, H5FD_MPIO_COLLECTIVE_F, io_error)
+        !
+        ! Write the dataset collectively
+        !
+        call h5dwrite_f (io_dset_id, H5T_NATIVE_DOUBLE, &
+                  omegay(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &  
+                  io_dimsfi, io_error, file_space_id = io_filespace, &
+                  mem_space_id = io_memspace, xfer_prp = io_plist_id)
+        !
+        ! Close dataspaces
+        !
+        call h5sclose_f(io_filespace, io_error)
+        call h5sclose_f(io_memspace, io_error)
+        !
+        ! Close the dataset
+        !
+        call h5dclose_f (io_dset_id, io_error)        
+
+        !
+        ! Close property list
+        ! 
+        call h5pclose_f(io_plist_id, io_error)
+        
+        ! REPEAT FOR w:
+        !
+        ! Create the data space for the  dataset. 
+        !        
+        call h5screate_simple_f(io_rank, io_dimsf, io_filespace, io_error)
+        call h5screate_simple_f(io_rank, io_chunk_dims, io_memspace, io_error)
+        
+        !
+        ! Create chunked dataset
+        ! 
+        call h5pcreate_f(H5P_DATASET_CREATE_F, io_plist_id, io_error)
+        call h5pset_chunk_f(io_plist_id, io_rank, io_chunk_dims, io_error)
+        call h5dcreate_f (io_file_id, 'omegaz', H5T_NATIVE_DOUBLE, io_filespace, &
+                          io_dset_id, io_error, io_plist_id)
+        call h5sclose_f(io_filespace, io_error)
+        !
+        ! Select hyperslab in the file  
+        !
+        call h5dget_space_f(io_dset_id, io_filespace, io_error)
+        call h5sselect_hyperslab_f (io_filespace, H5S_SELECT_SET_F, &
+                                    io_offset, io_count, io_error, &
+                                    io_stride, io_block)
+        !
+        ! Create property list for collective dataset write
+        !
+        call h5pcreate_f (H5P_DATASET_XFER_F, io_plist_id, io_error)
+        call h5pset_dxpl_mpio_f(io_plist_id, H5FD_MPIO_COLLECTIVE_F, io_error)
+        !
+        ! Write the dataset collectively
+        !
+        call h5dwrite_f (io_dset_id, H5T_NATIVE_DOUBLE, &
+                  omegaz(istart(1):iend(1), istart(2):iend(2), istart(3):iend(3)), &  
+                  io_dimsfi, io_error, file_space_id = io_filespace, &
+                  mem_space_id = io_memspace, xfer_prp = io_plist_id)
+        !
+        ! Close dataspaces
+        !
+        call h5sclose_f(io_filespace, io_error)
+        call h5sclose_f(io_memspace, io_error)
+        !
+        ! Close the dataset
+        !
+        call h5dclose_f (io_dset_id, io_error)        
+
+        !
+        ! Close property list
+        ! 
+        call h5pclose_f(io_plist_id, io_error)
+        !
+        ! Close the file
+        !
+        call h5fclose_f(io_file_id, io_error)
+        
+    end subroutine io_saveVorticity    
     
     subroutine io_loadState(stateName)
         !
@@ -590,7 +768,49 @@ contains
                 
             close(io_Pars)
         end if
-    end subroutine 
+    end subroutine io_saveInfo
+    
+    subroutine io_loadInfo()
+        
+        logical :: infoExist
+        character (len=200) :: dummyone
+        character (len=200) :: dummytwo
+        character (len=200) :: dummythree
+        character (len=200) :: dummyfour
+        character (len=200) :: dummyfive
+        character (len=200) :: dummysix
+        
+        inquire(file='info.dat', exist=infoExist)
+        if(.not. infoExist) then
+            if(proc_id.eq.0) then
+                print *, 'info.dat not found '
+            end if
+            call abort
+        end if
+        
+        open(unit = 666, file='info.dat', status='old')
+            
+            read(666, *) dummyone, dummytwo, dummythree, dummyfour, &
+                         io_Nx, io_Ny, io_Nz
+            
+            read(666, *)
+            read(666, *)
+            read(666, *) dummyone, dummytwo, dummythree, dummyfour, &
+                         io_alpha_x, io_alpha_y, io_alpha_z
+             
+            if(proc_id.eq.0) then
+                write(*, *) 'Nx = ', io_Nx  
+                write(*, *) 'Ny = ', io_Ny  
+                write(*, *) 'Nz = ', io_Nz  
+            
+                write(*, *) 'alpha_x = ', alpha_x  
+                write(*, *) 'alpha_y = ', alpha_y  
+                write(*, *) 'alpha_z = ', alpha_z  
+            end if
+                        
+        close(666)
+                
+    end subroutine io_loadInfo
     
 !**************************************************************************
  end module io
