@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-runDir = "../test/0075"
+runDir = "../test/0085"
 Ni = 0
 Nf = -1
 

@@ -67,11 +67,13 @@ program nsbox
     
     if(proc_id .eq. 0) then 
         print *, 'Starting time-stepping'
+        print *, 'time-stepper: implicit'
     endif
     
     
     if (tStepFix) then
-        call rhsIntFact() ! compute integration factor    
+        ! call rhsIntFact() ! compute integration factor    
+        call rhstStepFact() ! compute predictor-corrector time-step factor
     else 
         call setTimeStep()
     end if
@@ -84,55 +86,99 @@ program nsbox
     
     do while (running_exist)
     n = n + 1
-        
-        ! compute the nonlinear term for uhattemp:
+    
+        call rhsFix() ! Compute the part of the rhs fixed for all PC iterations
+        ! First step before predictor-corrector iterations:
         call rhsNonlinear()
         
-        ! Predictor
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
             
-            ! Predicted next step for corrector calculation:
-            uhattemp(i, j, k) = intFact(i, j, k) &
-                              * (uhatold(i, j, k) + dt * nonlinuhat(i, j, k))
+!            if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) &
+!         .and. (ky(j) .eq. cmplx(0.0d0, 0.0d0)) &
+!         .and. (kz(i) .eq. cmplx(0.0d0, 0.0d0))) then
+!                eps = 1d-10
+!            else
+!                eps = 0.0d0
+!            end if
             
-            ! Contribution to the final step from the predictor calculation:
+            uhatold(i, j, k) = uhat(i, j, k) 
+            vhatold(i, j, k) = vhat(i, j, k) 
+            whatold(i, j, k) = what(i, j, k) 
+            
+            nonlinuhatold(i, j, k) = nonlinuhat(i, j, k)
+            nonlinvhatold(i, j, k) = nonlinvhat(i, j, k)
+            nonlinwhatold(i, j, k) = nonlinwhat(i, j, k)
+                        
             uhat(i, j, k) = intFact(i, j, k) &
-                          * (uhatold(i, j, k) &
-                             + dt * nonlinuhat(i, j, k) * 0.5)
+                          * (rhsuhatfix(i,j,k) + nonlinuhat(i,j,k))
             
-            ! Predicted next step for corrector calculation:
-            vhattemp(i, j, k) = intFact(i, j, k) &
-                              * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k))
-            
-            ! Contribution to the final step from the predictor calculation:
             vhat(i, j, k) = intFact(i, j, k) &
-                          * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5)
-                        
-            ! Predicted next step for corrector calculation:
-            whattemp(i, j, k) = intFact(i, j, k) &
-                              * (whatold(i, j, k) + dt * nonlinwhat(i, j, k))
+                          * (rhsvhatfix(i,j,k) + nonlinvhat(i,j,k))
             
-            ! Contribution to the final step from the predictor calculation:
             what(i, j, k) = intFact(i, j, k) &
-                          * (whatold(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5)
+                          * (rhswhatfix(i,j,k) + nonlinwhat(i,j,k))
+            
+        end do; end do; end do            
+        
+        iter = 0
+        chg = 1.0d0
+        
+        do while(chg .gt. tol)
+            
+            iter = iter + 1
+            if (proc_id.eq.0) then
+                print *, "iter = ", iter
+            end if
+            do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)            
+                
+                uhattemp(i, j, k) = uhat(i, j, k)
+                vhattemp(i, j, k) = vhat(i, j, k)
+                whattemp(i, j, k) = what(i, j, k)
+                
+            end do; end do; end do
+            ! compute the nonlinear term for uhattemp:
+            call rhsNonlinear()
+            
+            call stateDivergence()
+            if (proc_id.eq.0) then
+                print *, "div 1st step= ", divMax
+            end if
+            
+            do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)            
+                
+                uhat(i, j, k) = intFact(i, j, k) &
+                              * (rhsuhatfix(i, j, k) &
+                                + c * nonlinuhat(i, j, k) &
+                                + (1.0d0 - c) * nonlinuhatold(i, j, k))
+                
+                vhat(i, j, k) = intFact(i, j, k) &
+                              * (rhsvhatfix(i, j, k) &
+                                + c * nonlinvhat(i, j, k) &
+                                + (1.0d0 - c) * nonlinvhatold(i, j, k))
+                
+                what(i, j, k) = intFact(i, j, k) &
+                              * (rhswhatfix(i, j, k) &
+                                + c * nonlinwhat(i, j, k) &
+                                + (1.0d0 - c) * nonlinwhatold(i, j, k))
+            
+            end do; end do; end do              
                         
-        end do; end do; end do    
-        
-        ! compute the nonlinear term for uhattemp:
-        call rhsNonlinear()
-        
-        ! Corrector
-        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-        
-            uhat(i, j, k) = uhat(i, j, k) + dt * nonlinuhat(i, j, k) * 0.5
-            vhat(i, j, k) = vhat(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5
-            what(i, j, k) = what(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5
-                        
-        end do; end do; end do    
-        
+            mychg(1) = maxval(abs(uhattemp - uhat))
+            mychg(2) = maxval(abs(vhattemp - vhat))
+            mychg(3) = maxval(abs(whattemp - what))                
+            
+            call mpi_allreduce (mychg, allchg, 3, mpi_double_precision, &
+                                mpi_max, mpi_comm_world, ierr)
+            
+            chg = allchg(1) + allchg(2) + allchg(3)        
+            if (proc_id.eq.0) then
+                print *, 'chg:', chg
+            end if
+            
+        end do
+ 
         ! Project
         call stateProject()
-        
         ! Copy everything        
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
 
@@ -216,7 +262,24 @@ program nsbox
         inquire(file='RUNNING', exist=running_exist)
             
     end do
+            
+    ! Back to the configuration space:
+    call p3dfft_btran_c2r (uhat, u, 'tff')
+    call p3dfft_btran_c2r (vhat, v, 'tff')
+    call p3dfft_btran_c2r (what, w, 'tff')
     
+    do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
+        
+        u(i, j, k) = u(i, j, k) * scalemodes
+        v(i, j, k) = v(i, j, k) * scalemodes
+        w(i, j, k) = w(i, j, k) * scalemodes
+        
+    end do; end do; end do
+    
+    if (analytic) then
+        call stateCheckError()
+    end if 
+        
 	deallocate(x, y, z, time, mychg, allchg, kSpec, myEspec, Espec, &
                u, v, w, ux, uy, uz, vx, vy, vz, wx, wy, wz, &
                utemp, vtemp, wtemp,&
@@ -253,7 +316,8 @@ subroutine setTimeStep()
     ! This subroutine should be called after the stats are computed
     
     dt = ((CourantMax + CourantMin) / (2.0d0 * Courant) ) * dt
-    call rhsIntFact() ! Recompute the integration factor with the new time step
+    ! call rhsIntFact() ! Recompute the integration factor with the new time step
+    call rhstStepFact() ! compute predictor-corrector time-step factor
     call io_Courant()
 	if (proc_id.eq.0) then
 		print *,'time step set to', dt

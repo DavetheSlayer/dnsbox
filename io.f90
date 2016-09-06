@@ -634,18 +634,24 @@ contains
         call io_Courant()
         
         call io_Dissipation()
-
+        
+        call stateDivergence()
+        
         if(proc_id.eq.0) then
             print *, ' Saving stats  '
             print *, 'Ekin = ', Ekin
             print *, 'Dissipation = ', Disp
             print *, 'Input = ', 2.0d0 * Q * Ekin
             print *, 'Courant = ', Courant
-            write(io_Ekin,'(5e20.12)')  time(n+1), &     ! Instance
+            print *, 'Divergence = ', divMax
+            print *, 'EZero = ', EZero
+            write(io_Ekin,'(7e20.12)')  time(n+1), &     ! Instance
                                         Ekin, &          ! Total kinetic energ.
                                         Disp, &          ! Dissipation rate 
                                         2.0d0 * Q * Ekin, & ! Energy input rate
-                                        Courant          ! maximum Courant num.
+                                        Courant, &       ! maximum Courant num.
+                                        divMax, &        ! maximum divergence
+                                        EZero            ! maximum divergence
         end if 
     
     end subroutine io_saveStats

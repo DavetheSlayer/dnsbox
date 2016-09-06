@@ -76,7 +76,7 @@ module rhs
         
     end subroutine rhsIntFact
       
-    subroutine rhsNonlinear()
+    subroutine rhsNonlinearRot()
         ! Compute nonlinear term of the Navier-Stokes equation 
         ! in rotation form for (u,v,w)hattemp:
         
@@ -171,9 +171,9 @@ module rhs
             
         end do; end do; end do
         
-    end subroutine rhsNonlinear
+    end subroutine rhsNonlinearRot
     
-    subroutine rhsNonlinearConv()
+    subroutine rhsNonlinear()
         ! Compute nonlinear term of the Navier-Stokes equation 
         ! in Fourier space for (u,v,w)hattemp:
         ! in convective form
@@ -258,7 +258,46 @@ module rhs
             
         end do; end do; end do
 
-    end subroutine rhsNonlinearConv    
+    end subroutine rhsNonlinear    
+    
+    subroutine rhsFix()
+    ! Part of the rhs that doesn't change each iteration during 
+    ! implicit time stepping
+
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+            
+            rhsuhatfix(i, j, k) = ((1.0d0/dt) + (1.0d0 - c) &
+                                * (nu * (kx(k) * kx(k) &
+                                       + ky(j) * ky(j) &
+                                       + kz(i) * kz(i))&
+                                  + Q)) * uhat(i, j, k)
+            
+            rhsvhatfix(i, j, k) = ((1.0d0/dt) + (1.0d0 - c) &
+                                * (nu * (kx(k) * kx(k) &
+                                       + ky(j) * ky(j) &
+                                       + kz(i) * kz(i))&
+                                  + Q)) * vhat(i, j, k)
+            
+            rhswhatfix(i, j, k) = ((1.0d0/dt) + (1.0d0 - c) &
+                                * (nu * (kx(k) * kx(k) &
+                                       + ky(j) * ky(j) &
+                                       + kz(i) * kz(i))&
+                                  + Q)) * what(i, j, k)
+            
+        end do; end do; end do
+        
+    end subroutine rhsFix
+    
+    subroutine rhstStepFact()
+        ! Compute time-stepping factor for predictor-corrector
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+            intFact(i, j, k) = ((1.0d0 / dt) - c * (nu * (kx(k) * kx(k) &
+                                                         + ky(j) * ky(j) &
+                                                         + kz(i) * kz(i))&
+                                                         + Q)) ** (-1.0d0)
+        end do; end do; end do
+        
+    end subroutine rhstStepFact    
     
 !    subroutine rhsAll()
 !        ! Compute RHS for uhattemp

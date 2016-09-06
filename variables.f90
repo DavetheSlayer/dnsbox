@@ -6,7 +6,7 @@ module variables
     include 'mpif.h'
 
     !simulation variables:
-    real(kind=8)            :: dt= 0.01d0             ! Time step size
+    real(kind=8)            :: dt= 0.001d0             ! Time step size
     real(kind=8), dimension(:), allocatable     :: x, y, z, time, mychg, allchg
     real(kind=8)            :: scalemodes, chg, factor!, scalemodessquare
     real(kind=8)            :: eps                    ! epsilon to avoid divs
@@ -36,9 +36,9 @@ module variables
                                                              nonlinuhatold, &
                                                              nonlinvhatold, &
                                                              nonlinwhatold, &
-!                                                             rhsuhat, &
-!                                                             rhsvhat, &
-!                                                             rhswhat, &
+                                                             rhsuhatfix, &
+                                                             rhsvhatfix, &
+                                                             rhswhatfix, &
                                                              temp_c, &
                                                              intFact, &
                                                              phat
@@ -81,7 +81,10 @@ module variables
     integer        :: nk          ! position of the window corresponding to k
     real(kind = 8) :: myDisp      ! Dissipation on one cpu
     real(kind = 8) :: Disp        ! Total dissipation
-        
+    real(kind = 8) :: mydivMax      ! Maximum divergence for error control
+    real(kind = 8) :: divMax      ! Maximum divergence for error control
+    real(kind = 8) :: myEZero     ! Energy contained in k=0
+    real(kind = 8) :: EZero       ! Energy contained in k=0
     
     contains
     
@@ -188,9 +191,9 @@ module variables
                   uhattemp(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   vhattemp(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   whattemp(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-!                  rhsuhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-!                  rhsvhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
-!                  rhswhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  rhsuhatfix(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  rhsvhatfix(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
+                  rhswhatfix(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinuhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinvhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
                   nonlinwhat(fstart(1):fend(1), fstart(2):fend(2), fstart(3):fend(3)), &
