@@ -245,7 +245,7 @@ module rhs
                                         + kz(i) * nonlinwhat(i, j, k)) & 
                                          /  (kx(k) * kx(k) &
                                            + ky(j) * ky(j) & 
-                                           + kz(i) * kz(i) + 0.1d0 ** 13)
+                                           + kz(i) * kz(i))
                 
                 nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
                                       - kx(k) * phat(i, j, k)

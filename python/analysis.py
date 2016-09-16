@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
+rcParams.update({'figure.autolayout': True})
 
-runDir = "../test/0085"
+runDir = "../test/0106"
 Ni = 0
 Nf = -1
 
@@ -39,15 +41,23 @@ plt.ylabel('$k$', fontsize=24)
 plt.plot(time, KineticEnergy)
 
 # Production-Dissipation plot
-plt.figure(figsize=(8, 8))
-plt.xlabel('$\mathcal{P}$', fontsize=24)
-plt.ylabel('$\epsilon$', fontsize=24)
+plt.figure(figsize=(6, 6))
+plt.xlabel('$\mathcal{P}$', fontsize=36)
+plt.ylabel('$\epsilon$', fontsize=36)
 plt.plot(Production, Dissipation)
+ax = plt.gca()
+plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+for tick in ax.xaxis.get_major_ticks():
+    tick.label.set_fontsize(24)
+    
+for tick in ax.yaxis.get_major_ticks():
+    tick.label.set_fontsize(24)
 
 # Taylor microscale Reynolds number
 plt.figure(figsize=(8,8))
-plt.xlabel('$t$', fontsize=24)
-plt.ylabel('$Re_{\lambda}$', fontsize=24)
+plt.xlabel('$t$', fontsize=16)
+plt.ylabel('$Re_{\lambda}$', fontsize=16)
 plt.plot(time, Relambda)
 
 # Turbulent reynolds number

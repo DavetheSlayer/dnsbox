@@ -23,8 +23,8 @@ program nsbox
     if( initrand ) then 
         
         ! Generate a random initial state
-!        call stateInitRand()
-        call stateInitRandConf()
+        call stateInitRand()
+!        call stateInitRandConf()
         
     elseif ( analytic ) then 
         
@@ -253,6 +253,11 @@ subroutine setTimeStep()
     ! This subroutine should be called after the stats are computed
     
     dt = ((CourantMax + CourantMin) / (2.0d0 * Courant) ) * dt
+    
+    if (dt > tStepMax) then
+        dt = tStepMax
+    end if
+    
     call rhsIntFact() ! Recompute the integration factor with the new time step
     call io_Courant()
 	if (proc_id.eq.0) then
