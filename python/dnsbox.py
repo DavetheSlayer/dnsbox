@@ -8,7 +8,7 @@ global Nx, Ny, Nz, Nt, alphax, alphay, alphaz,\
        nu, Q,\
        iSaveRate1, iSaveRate2,\
        Deltak, kzero, uzero, CourantMin, CourantMax, t, tStepMax, tStepFix,\
-       analytic, spherical, random
+       analytic, spherical, random, dt
 
 # Simulation parameters:
 Nx = 64            # Spatial discretization
@@ -28,12 +28,12 @@ tStepMax = 0.01    # Maximum time step
 
 # Logicals
 spherical = True   # Spherical truncation
-analytic = False    # Analytical initial condition
+analytic = False   # Analytical initial condition
 random = True      # Random initial condition
-tStepFix = True    # Fixed time-step simulation, if true
+tStepFix = False   # Fixed time-step simulation, if true
 
 # Random initial field generation parameters:
-kzero = 5.0
+kzero = 2.0
 uzero = 1.0e-3
 
 
@@ -107,6 +107,7 @@ def alloc():
     kkm = np.zeros((Nx, Ny, Nz), dtype='float')
 
     intFact = np.zeros((Nx, Ny, Nz), dtype='float')
+    temp = np.zeros((Nx, Ny, Nz), dtype='float')
     temphat = np.zeros((Nx, Ny, Nz), dtype='complex')
     uhattemp = np.zeros((Nx, Ny, Nz), dtype='complex')
     vhattemp = np.zeros((Nx, Ny, Nz), dtype='complex')
@@ -168,8 +169,9 @@ def init():
     """
     Initiate simulation
     """
-    global t, lamb, sk, sl, sm, A, kxm, kym, kzm, xx, yy, zz,\
-           u, v, w, uhat, vhat, what, saveCount
+    global t, lamb, sk, sl, sm, A, kxm, kym, kzm, xx, yy, zz, \
+           u, v, w, uhat, vhat, what, saveCount, dt, intFact, \
+           uhattemp, vhattemp, whattemp
     print('Initiating variables, grids, and fields')
     t = 0.0
     setGrid()
@@ -240,27 +242,39 @@ def init():
 
     else:
         print('read initial field from file')
-        print('not implemented yet')
-        return
+        loadState('state0000.pkl')
 
+    dt = tStepMax  # Initial time-step setting
+    intFact = exp((- nu * kkm + Q) * dt)  # Set the integrating factor
     u2uhat()  # Fourier transform initial condition
+    uhattemp = np.copy(uhat)
+    vhattemp = np.copy(vhat)
+    whattemp = np.copy(what)
     saveCount = 0
 
     return
 
 
 def setTimeStep(tStep=tStepMax):
+    """
+    Change the time-step such that the Courant number is set to
+    (CourantMin+CourantMax)/2
+    This function should be called after the Courant number is computed when
+    running in adaptive time-stepping mode
+    """
     global dt, intFact
     if tStepFix:
         dt = tStep
+    elif CourantNumber > CourantMax or (CourantNumber < CourantMin
+                                        and dt < tStepMax):
+        dt = ((CourantMax + CourantMin) / (2.0 * CourantNumber)) * dt
+        if (dt > tStepMax):
+            dt = tStepMax
     else:
-        print('Resetting time step')
-        print('not implemented yet')
         return
-    print('Set the time step to, dt = ', dt)
-    #intFact = exp((- nu * (k2xm + k2ym + k2zm) + Q) * dt)
-    intFact = exp((- nu * kkm + Q) * dt)
 
+    print('Set the time step to, dt = ', dt)
+    intFact = exp((- nu * kkm + Q) * dt)
     return
 
 
@@ -331,23 +345,19 @@ def timeStep(Nt):
 
     for n in range(Nt):
 
-        uhattemp = np.copy(uhat)
-        vhattemp = np.copy(vhat)
-        whattemp = np.copy(what)
-
         nonLinear()  # Compute nonlinear term
 
         #Predictor-Corrector:
 
         uhattemp = intFact * (uhat + dt * nonlinuhat)   # Prediction
         uhat = intFact * (uhat + dt * nonlinuhat * 0.5) # contribution from
-                                                           # prediction
+                                                        # prediction
         vhattemp = intFact * (vhat + dt * nonlinvhat)   # Prediction
         vhat = intFact * (vhat + dt * nonlinvhat * 0.5) # contribution from
-                                                           # prediction
+                                                        # prediction
         whattemp = intFact * (what + dt * nonlinwhat)   # Prediction
         what = intFact * (what + dt * nonlinwhat * 0.5) # contribution from
-                                                           # prediction
+                                                        # prediction
 
         nonLinear()  # Compute nonlinear term again
 
@@ -355,20 +365,16 @@ def timeStep(Nt):
         vhat = vhat + dt * nonlinvhat * 0.5
         what = what + dt * nonlinwhat * 0.5
 
+        project()  # Apply projection operator to ensure div-free
+
+        uhattemp = np.copy(uhat)
+        vhattemp = np.copy(vhat)
+        whattemp = np.copy(what)
+
         t = t + dt
 
     uhat2u()
     return
-
-
-def Ekinetic():
-    """
-    Compute kinetic energy
-    """
-    Ekin = np.real(np.sum(np.conjugate(uhat) * uhat
-                        + np.conjugate(vhat) * vhat
-                        + np.conjugate(what) * what)) / (Nx * Ny * Nz) ** 2
-    return Ekin
 
 
 def checkError():
@@ -412,19 +418,35 @@ def loadState(stateName):
     return
 
 
-def saveStats():
+def stats():
     """
     Save flow statistics
     """
-    k = Ekinetic()
-    D = Dissipation()
-    P = 2 * Q * Ekin
-    C = Courant()
-    div = divMax()
+    global CourantNumber
+    derivatives()
 
-    f=open('stats.dat' ,'ab')
-    f.write('%11.9f %11.9f %11.9f %11.9f %11.9f %11.9f\n' %
-            (db.t,  k,      D,     P,     C,     div))
+    CourantNumber = np.max(np.abs(u)) * dt / (Lx / Nx) \
+                  + np.max(np.abs(v)) * dt / (Ly / Ny) \
+                  + np.max(np.abs(w)) * dt / (Lz / Nz)
+
+    div = np.max(ux + vy + wz)  # Maximum divergence
+
+    k = 0.5 * np.real(np.sum(np.conjugate(uhat) * uhat
+                           + np.conjugate(vhat) * vhat
+                           + np.conjugate(what) * what)) / (Nx * Ny * Nz) ** 2
+
+    D = np.sum(ux ** 2 + uy ** 2 + uz ** 2
+             + vx ** 2 + vy ** 2 + vz ** 2
+             + wx ** 2 + wy ** 2 + wz ** 2) * nu / (Nx * Ny * Nz)
+
+    P = 2 * Q * k
+
+    C = CourantNumber
+
+    f = open('stats.dat', 'ab')
+    f.write('%.18e %.18e %.18e %.18e %.18e %.18e\n' %
+            (t,     k,     D,     P,     C,     div))
+    #np.savetxt(f, np.array([t, k, D, P, C, div]), delimiter=' ')
     f.close()
 
     return

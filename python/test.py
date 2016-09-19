@@ -13,4 +13,4 @@ for n in range(10000):
     if n == 5:
         db.saveState()
 
-db.checkError()
+# db.checkError()
