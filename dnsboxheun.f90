@@ -132,6 +132,7 @@ program nsbox
         
         ! Project
         call stateProject()
+        call stateDealias()
         
         ! Copy everything        
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)

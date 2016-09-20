@@ -27,14 +27,14 @@ CourantMax = 0.2   # Maximum Courant number
 tStepMax = 0.01    # Maximum time step
 
 # Logicals
-spherical = True   # Spherical truncation
+spherical = False  # Spherical truncation
 analytic = False   # Analytical initial condition
 random = True      # Random initial condition
 tStepFix = False   # Fixed time-step simulation, if true
 
 # Random initial field generation parameters:
-kzero = 2.0
-uzero = 1.0e-3
+kzero = 3.0
+uzero = 1.0e-2
 
 
 def setGrid():
@@ -71,7 +71,7 @@ def alloc():
            uhat, vhat, what, phat, nonlinuhat, nonlinvhat, nonlinwhat,\
            xx, yy, zz, kxm, kym, kzm, kkm, \
            temp, temphat, utemp, vtemp, wtemp, uhattemp, vhattemp, whattemp,\
-           intFact
+           intFact, dealias
 
     u = np.zeros((Nx, Ny, Nz), dtype='float')
     v = np.zeros((Nx, Ny, Nz), dtype='float')
@@ -116,6 +116,8 @@ def alloc():
     vtemp = np.zeros((Nx, Ny, Nz), dtype='float')
     wtemp = np.zeros((Nx, Ny, Nz), dtype='float')
 
+    dealias = np.ones((Nx, Ny, Nz), dtype='float')
+    
     return
 
 
@@ -171,11 +173,14 @@ def init():
     """
     global t, lamb, sk, sl, sm, A, kxm, kym, kzm, xx, yy, zz, \
            u, v, w, uhat, vhat, what, saveCount, dt, intFact, \
-           uhattemp, vhattemp, whattemp
+           uhattemp, vhattemp, whattemp, dealias
     print('Initiating variables, grids, and fields')
     t = 0.0
     setGrid()
     alloc()
+    kxMax = np.max(kx)
+    kyMax = np.max(ky)
+    kzMax = np.max(kz)
     for i in range(Nx):
         for j in range(Ny):
             for k in range(Nz):
@@ -186,12 +191,30 @@ def init():
                 xx[i, j, k] = x[i]                                    # lint:ok
                 yy[i, j, k] = y[j]                                    # lint:ok
                 zz[i, j, k] = z[k]                                    # lint:ok
+                
+                kk = np.real(kx[i] ** 2) \
+                   + np.real(ky[j] ** 2) \
+                   + np.real(kz[k] ** 2)  # k^2
+                
                 if kx[i] == 0 and ky[j] == 0 and kz[k] == 0:
                     kkm[i, j, k] = 1.0e-13  # to avoid div by zeros
                 else:
-                    kkm[i, j, k] = np.real(kx[i] ** 2) \
-                                 + np.real(ky[j] ** 2) \
-                                 + np.real(kz[k] ** 2)  # k^2
+                    kkm[i, j, k] = kk
+                
+                # dealias array sets |kk| = 0 and |kk| > |kkmax| modes to zero
+                # when element-wise multiplied an Fourier-space array.
+                if spherical and (np.sqrt(kk) > (2.0 / 3.0) * kxMax 
+                               or kk == 0.0):
+                    
+                    dealias[i, j, k] = 0.0
+                    
+                elif (kx[i] > (2.0 / 3.0) * kxMax or 
+                      ky[j] > (2.0 / 3.0) * kyMax or
+                      kz[k] > (2.0 / 3.0) * kzMax or
+                      kk == 0.0):
+                    
+                    dealias[i, j, k] = 0.0
+                
 
     if analytic:
         # Initiate simulation from an analytical solution for test. See
@@ -233,10 +256,9 @@ def init():
                * exp(1j * (np.random.rand(Nx, Ny, Nz) - 0.5) * 2 * pi) \
                * Nx * Ny * Nz
 
-        uhat[0, 0, 0] = 0.0
-        vhat[0, 0, 0] = 0.0
-        what[0, 0, 0] = 0.0
-
+        uhat = dealias * uhat
+        vhat = dealias * vhat
+        what = dealias * what
         project()
         uhat2u()
 
@@ -246,7 +268,10 @@ def init():
 
     dt = tStepMax  # Initial time-step setting
     intFact = exp((- nu * kkm + Q) * dt)  # Set the integrating factor
-    u2uhat()  # Fourier transform initial condition
+    u2uhat()  # Fourier transform initial condition 
+    uhat = dealias * uhat
+    vhat = dealias * vhat
+    what = dealias * what
     uhattemp = np.copy(uhat)
     vhattemp = np.copy(vhat)
     whattemp = np.copy(what)
@@ -332,9 +357,9 @@ def nonLinear():
     # Pressure
     phat = 1j * (kxm * nonlinuhat + kym * nonlinvhat + kzm * nonlinwhat) / kkm
 
-    nonlinuhat = - nonlinuhat - 1j * kxm * phat
-    nonlinvhat = - nonlinvhat - 1j * kym * phat
-    nonlinwhat = - nonlinwhat - 1j * kzm * phat
+    nonlinuhat = dealias * (- nonlinuhat - 1j * kxm * phat)
+    nonlinvhat = dealias * (- nonlinvhat - 1j * kym * phat)
+    nonlinwhat = dealias * (- nonlinwhat - 1j * kzm * phat)
 
     return
 

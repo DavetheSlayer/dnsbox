@@ -645,13 +645,15 @@ contains
             print *, 'Courant = ', Courant
             print *, 'Divergence = ', divMax
             print *, 'EZero = ', EZero
+            print *, 'EOne = ', EOne
+            print *, 'Esqrt2 = ', Esqrt2
             write(io_Ekin,'(7e20.12)')  time(n+1), &     ! Instance
                                         Ekin, &          ! Total kinetic energ.
                                         Disp, &          ! Dissipation rate 
                                         2.0d0 * Q * Ekin, & ! Energy input rate
                                         Courant, &       ! maximum Courant num.
                                         divMax, &        ! maximum divergence
-                                        EZero            ! maximum divergence
+                                        EZero            ! Energy at k=0
         end if 
     
     end subroutine io_saveStats

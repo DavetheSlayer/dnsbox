@@ -85,6 +85,10 @@ module variables
     real(kind = 8) :: divMax      ! Maximum divergence for error control
     real(kind = 8) :: myEZero     ! Energy contained in k=0
     real(kind = 8) :: EZero       ! Energy contained in k=0
+    real(kind = 8) :: myEOne     ! Energy contained in k=1
+    real(kind = 8) :: EOne       ! Energy contained in k=1
+    real(kind = 8) :: myEsqrt2     ! Energy contained in k=sqrt(2)
+    real(kind = 8) :: Esqrt2       ! Energy contained in k=sqrt(2)
     
     contains
     

@@ -76,7 +76,7 @@ module rhs
         
     end subroutine rhsIntFact
       
-    subroutine rhsNonlinearRot()
+    subroutine rhsNonlinear()
         ! Compute nonlinear term of the Navier-Stokes equation 
         ! in rotation form for (u,v,w)hattemp:
         
@@ -171,9 +171,9 @@ module rhs
             
         end do; end do; end do
         
-    end subroutine rhsNonlinearRot
+    end subroutine rhsNonlinear
     
-    subroutine rhsNonlinear()
+    subroutine rhsNonlinearConv()
         ! Compute nonlinear term of the Navier-Stokes equation 
         ! in Fourier space for (u,v,w)hattemp:
         ! in convective form
@@ -258,7 +258,7 @@ module rhs
             
         end do; end do; end do
 
-    end subroutine rhsNonlinear    
+    end subroutine rhsNonlinearConv    
     
     subroutine rhsFix()
     ! Part of the rhs that doesn't change each iteration during 
