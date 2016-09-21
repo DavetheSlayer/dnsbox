@@ -87,10 +87,7 @@ module state
             .or. abs(ky(j)) .ge. (real(Ny, kind=8) / 2.0d0) &
                                * (2.0d0 * alpha_y / 3.0d0)  &
             .or. abs(kz(i)) .ge. (real(Nz, kind=8) / 2.0d0) &
-                               * (2.0d0 * alpha_z / 3.0d0)) &
-            .or. (kx(k) .eq. cmplx(0.0d0, 0.0d0)) .or. &
-                 (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .or. &
-                 (kz(i) .eq. cmplx(0.0d0, 0.0d0))) then
+                               * (2.0d0 * alpha_z / 3.0d0))) then
 
                   uhat(i, j, k) = cmplx(0.0d0, 0.0d0)
                   vhat(i, j, k) = cmplx(0.0d0, 0.0d0)
@@ -107,9 +104,9 @@ module state
         ! Initiation method: Rosales & Meneveau (2005), Phys. Fluids. eq.9
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)    
             ! skip k_i = 0
-            if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .or. &
-               (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .or. &
-               (kz(i) .eq. cmplx(0.0d0, 0.0d0))) cycle 
+!            if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .or. &
+!               (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .or. &
+!               (kz(i) .eq. cmplx(0.0d0, 0.0d0))) cycle 
             ! skip 000 mode:
 !            if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
 !               (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
