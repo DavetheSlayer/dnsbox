@@ -9,9 +9,9 @@ module parameters
 
     implicit none
     !simulation parameters:
-    integer(kind=4), parameter      :: Nx = 64! 256
-    integer(kind=4), parameter      :: Ny = 64! 256
-    integer(kind=4), parameter      :: Nz = 64! 256
+    integer(kind=4), parameter      :: Nx = 256 ! 64! 256
+    integer(kind=4), parameter      :: Ny = 256 ! 64! 256
+    integer(kind=4), parameter      :: Nz = 256 ! 64! 256
     integer(kind=4), parameter      :: Nt = 100000       ! Number of t-steps
     integer(kind=4), parameter      :: iSaveRate1 = 1000 ! save rate for state files
     integer(kind=4), parameter      :: iSaveRate2 = 100  ! save rate for analysis files
@@ -23,7 +23,7 @@ module parameters
     real(kind=8), parameter         :: tol = 0.1d0**10   ! tolerance for t-steps
     real(kind=8), parameter         :: Deltak = 1.0d0    ! k-window for shell
                                                          ! averaging
-    real(kind=8), parameter         :: kzero = 5.0d0     ! Center frequency for 
+    real(kind=8), parameter         :: kzero = 2.0d0     ! Center frequency for 
                                                          ! initial field generation
     real(kind=8), parameter         :: uzero = 1.0d-3    ! rms velocity for 
                                                          ! initial field generation

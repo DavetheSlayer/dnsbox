@@ -141,24 +141,25 @@ module rhs
            .or. abs(ky(j)) .ge. (real(Ny, kind=8) / 2.0d0) &
                               * (2.0d0 * alpha_y / 3.0d0)  &
            .or. abs(kz(i)) .ge. (real(Nz, kind=8) / 2.0d0) &
-                              * (2.0d0 * alpha_z / 3.0d0)) .or. &
-               ((kx(k) .eq. cmplx(0.0d0, 0.0d0)) &
-          .and. (ky(j) .eq. cmplx(0.0d0, 0.0d0)) &
-          .and. (kz(i) .eq. cmplx(0.0d0, 0.0d0)))) then
+                              * (2.0d0 * alpha_z / 3.0d0))) then
 
                 nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
                 nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
                 nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)          
                     
             else
-            
-                phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
-                                        + ky(j) * nonlinvhat(i, j, k) & 
-                                        + kz(i) * nonlinwhat(i, j, k)) & 
-                                         /  (kx(k) * kx(k) &
-                                           + ky(j) * ky(j) & 
-                                           + kz(i) * kz(i))
-                
+                if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
+                   (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
+                   (kz(i) .eq. cmplx(0.0d0, 0.0d0))) then
+                    phat(i, j, k) = 0.0d0
+                else               
+                    phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
+                                            + ky(j) * nonlinvhat(i, j, k) & 
+                                            + kz(i) * nonlinwhat(i, j, k)) & 
+                                             /  (kx(k) * kx(k) &
+                                               + ky(j) * ky(j) & 
+                                               + kz(i) * kz(i))
+                end if
                 ! from n_k(u) to N_k(u)
                 nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
                                       - kx(k) * phat(i, j, k)

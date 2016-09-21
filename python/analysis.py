@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 
-runDir = "../test/0109"
+runDir = "../test/0112"
 Ni = 0
 Nf = -1
 
