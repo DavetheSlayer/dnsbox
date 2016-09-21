@@ -175,7 +175,7 @@ module state
         real(kind=8) :: Cfour =   2.0d0             ! 2.0d0
         
         if(proc_id .eq. 0) then 
-            print *, 'Yoffe intiial condition'
+            print *, 'Yoffe initial condition'
             print *, 'C_i = ', Cone, Ctwo, Cthree, Cfour
         endif
         

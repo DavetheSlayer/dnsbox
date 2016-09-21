@@ -20,6 +20,12 @@ program nsbox
     
     time(1) = 0.0d0
     
+    if(proc_id .eq. 0) then 
+        print *, 'Run notes: using rotational form'
+    endif
+    
+    
+    
     if( initrand ) then 
         
         ! Generate a random initial state
