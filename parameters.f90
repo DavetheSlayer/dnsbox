@@ -18,7 +18,7 @@ module parameters
     real(kind=4), parameter         :: alpha_x = 1.0d0   ! 2 pi / Lx 
     real(kind=4), parameter         :: alpha_y = 1.0d0   ! 2 pi / Ly
     real(kind=4), parameter         :: alpha_z = 1.0d0   ! 2 pi / Lz
-    real(kind=8), parameter         :: nu = 0.2d0 ! 4.491d-3 !       ! Kinematic viscosity 
+    real(kind=8), parameter         :: nu = 0.1d0 ! 4.491d-3 !       ! Kinematic viscosity 
     real(kind=8), parameter         :: Q = 0.5d0 ! 0.0667d0 !        ! Forcing multiplier
     real(kind=8), parameter         :: tol = 0.1d0**10   ! tolerance for t-steps
     real(kind=8), parameter         :: Deltak = 1.0d0    ! k-window for shell

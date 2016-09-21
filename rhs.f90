@@ -141,7 +141,10 @@ module rhs
            .or. abs(ky(j)) .ge. (real(Ny, kind=8) / 2.0d0) &
                               * (2.0d0 * alpha_y / 3.0d0)  &
            .or. abs(kz(i)) .ge. (real(Nz, kind=8) / 2.0d0) &
-                              * (2.0d0 * alpha_z / 3.0d0))) then
+                              * (2.0d0 * alpha_z / 3.0d0)) &
+           .or. ((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .or. &
+                 (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .or. &
+                 (kz(i) .eq. cmplx(0.0d0, 0.0d0)))) then
 
                 nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
                 nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
