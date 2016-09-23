@@ -403,7 +403,7 @@ module state
                            mpi_sum, mpi_comm_world, ierr)
     
     end subroutine stateComputeSpectrum
-
+    
     subroutine stateDivergence()
 
         ! Derivatives are already computed in the time-loop

@@ -20,6 +20,9 @@ module parameters
     real(kind=4), parameter         :: alpha_z = 1.0d0   ! 2 pi / Lz
     real(kind=8), parameter         :: nu = 4.491d-3 ! 0.2d0      ! Kinematic viscosity 
     real(kind=8), parameter         :: Q = 0.0667d0 ! 0.5d0       ! Forcing multiplier
+    real(kind=8), parameter         :: kCutOff = 2.5     ! Forcing cut-off frequency
+    real(kind=8), parameter         :: Pin = 1.0         ! Power input-rate
+    
     real(kind=8), parameter         :: tol = 0.1d0**10   ! tolerance for t-steps
     real(kind=8), parameter         :: Deltak = 1.0d0    ! k-window for shell
                                                          ! averaging
@@ -44,6 +47,7 @@ module parameters
     real(kind = 8), parameter       :: c = 0.5d0         ! implicitness param.
     logical, parameter              :: spherical = .false.! spherical trunc. 
                                                          ! cubic trunc. if false
+    
     
     real(kind=8), parameter &
     :: pi=3.14159265358979323846264338327950288419716939937510d0

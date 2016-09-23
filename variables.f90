@@ -62,6 +62,8 @@ module variables
     !measurement variables
     real(kind = 8) :: Ekin        !total kinetic energy
     real(kind = 8) :: myEkin      !kinetic energy on a cpu
+    real(kind = 8) :: Eband       !total kinetic energy of input band
+    real(kind = 8) :: myEband     !kinetic energy of input band on a cpu 
     real(kind = 8) :: Courant     !Maximum Courant number for time-step control 
     real(kind = 8) :: myCourant   !Maximum Courant number for time-step 
                                     !control 

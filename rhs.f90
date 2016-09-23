@@ -302,6 +302,40 @@ module rhs
         end do; end do; end do
         
     end subroutine rhstStepFact    
+
+
+    subroutine rhsEband()
+        
+        ! Compute total energy in the input band
+        
+        myEband = 0d0
+        
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+!            print *, k
+            absk = sqrt(real(conjg(kx(k)) * kx(k) &
+               + conjg(ky(j)) * ky(j) &
+               + conjg(kz(i)) * kz(i))) ! |k|^2
+               
+            if (absk > kCutOff) cycle
+
+            if (kx(k).eq.cmplx(0.0d0, 0.0d0)) then              
+                scalekx = 0.5d0
+            else 
+                scalekx = 1.0d0 
+            end if
+            
+            myEband = myEband &
+                   + real(conjg(uhattemp(i, j, k)) * uhattemp(i, j, k)) * scalekx &
+                   + real(conjg(vhattemp(i, j, k)) * vhattemp(i, j, k)) * scalekx &
+                   + real(conjg(whattemp(i, j, k)) * whattemp(i, j, k)) * scalekx
+            
+        end do; end do; end do   
+        
+        myEband = myEband * (scalemodes ** 2)
+        call mpi_allreduce(myEband, Eband, 1, mpi_double_precision, &
+                           mpi_sum, mpi_comm_world, ierr)
+        
+    end subroutine rhsEband 
     
 !    subroutine rhsAll()
 !        ! Compute RHS for uhattemp
