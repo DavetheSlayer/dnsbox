@@ -2,6 +2,7 @@ import numpy as np
 from numpy import pi, sin, cos, exp
 from numpy.fft import fftn, ifftn
 import pickle
+from pylab import *
 
 # Parameters:
 global Nx, Ny, Nz, Nt, alphax, alphay, alphaz,\
@@ -41,7 +42,7 @@ def setGrid():
     """
     Set grid in configuration and Fourier spaces
     """
-    global Lx, Ly, Lz, x, y, z, kx, ky, kz
+    global Lx, Ly, Lz, x, y, z, kx, ky, kz, kspec, Espec
     Lx = 2 * pi * alphax
     Ly = 2 * pi * alphay
     Lz = 2 * pi * alphaz
@@ -58,7 +59,12 @@ def setGrid():
                                      + list(range(-Ny / 2 + 1, 0))])
     kz = alphaz * np.array([n for n in list(range(0, Nz / 2)) + [0]
                                      + list(range(-Nz / 2 + 1, 0))])
-
+    
+    
+    kspec = np.arange(Deltak, np.max(kx) * (2.0/3.0) + Deltak, Deltak)
+    Espec = np.zeros(kspec.shape)
+    
+    
     return
 
 
@@ -208,9 +214,9 @@ def init():
                     
                     dealias[i, j, k] = 0.0
                     
-                elif (kx[i] > (2.0 / 3.0) * kxMax or 
-                      ky[j] > (2.0 / 3.0) * kyMax or
-                      kz[k] > (2.0 / 3.0) * kzMax or
+                elif (kx[i] >= (2.0 / 3.0) * kxMax or 
+                      ky[j] >= (2.0 / 3.0) * kyMax or
+                      kz[k] >= (2.0 / 3.0) * kzMax or
                       kk == 0.0):
                     
                     dealias[i, j, k] = 0.0
@@ -475,3 +481,41 @@ def stats():
     f.close()
 
     return
+
+def spectrum(plot=True):
+    
+    global Espec, Ezero
+    Ezero = 0.0
+    Espec[:] = 0.0
+    for i in range(Nx):
+        for j in range(Ny):
+            for k in range(Nz):
+                
+                absk = np.sqrt(np.real(kx[i] ** 2) \
+                     + np.real(ky[j] ** 2) \
+                     + np.real(kz[k] ** 2))  # |k|
+                if absk < int(absk / Deltak) + 0.5 * Deltak:
+                    nk = int(absk / Deltak) - 1.0  # python counts from 0
+                else:
+                    nk = int(absk / Deltak)
+                
+                if absk == 0.0:
+                    Ezero = Ezero + 0.5 * np.real(np.sum(
+                np.conjugate(uhat[i,j,k]) * uhat[i,j,k]
+              + np.conjugate(vhat[i,j,k]) * vhat[i,j,k]
+              + np.conjugate(what[i,j,k]) * what[i,j,k])) \
+              / (Nx * Ny * Nz) ** 2
+                    
+                if nk >= 0 and nk < len(kspec):
+                    Espec[nk] = Espec[nk] + 0.5 * np.real(np.sum(
+                np.conjugate(uhat[i,j,k]) * uhat[i,j,k]
+              + np.conjugate(vhat[i,j,k]) * vhat[i,j,k]
+              + np.conjugate(what[i,j,k]) * what[i,j,k])) \
+              / (Nx * Ny * Nz) ** 2 * Deltak
+
+    print("Ezero = ", Ezero)    
+    loglog(kspec, Espec)
+    show()
+    
+    return
+    
