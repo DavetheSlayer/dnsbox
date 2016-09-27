@@ -30,7 +30,7 @@
     
     integer,     private  :: io_Ekin, io_Spec, io_Pars 
     character(4) :: cnum        ! Save count
-    real(kind=8) :: scalekx   !scaling to avoid counting kx=0 modes twice
+
     
     ! Variables for reading parameters:
     integer(kind=4) :: io_Nx, io_Ny, io_Nz
@@ -629,7 +629,7 @@ contains
         !
         ! Measures some statistics and saves into text files
         !
-        call io_Ekinetic()
+        call stateEkinetic()
         
         call io_Courant()
         
@@ -647,43 +647,19 @@ contains
             print *, 'EZero = ', EZero
             print *, 'EOne = ', EOne
             print *, 'Esqrt2 = ', Esqrt2
-            write(io_Ekin,'(7e20.12)')  time(n+1), &     ! Instance
+            print *, 'Eband = ', Eband
+            write(io_Ekin,'(8e20.12)')  time(n+1), &     ! Instance
                                         Ekin, &          ! Total kinetic energ.
                                         Disp, &          ! Dissipation rate 
                                         2.0d0 * Q * Ekin, & ! Energy input rate
                                         Courant, &       ! maximum Courant num.
                                         divMax, &        ! maximum divergence
-                                        EZero            ! Energy at k=0
+                                        EZero, &         ! Energy at k=0
+                                        Eband            ! Energy of power-band
         end if 
     
     end subroutine io_saveStats
-    
-    subroutine io_Ekinetic()
-        !*************************!
-        ! Average kinetic energy: !
-        !*************************!
-        myEkin = 0d0
-        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-!            print *, k
-            if (kx(k).eq.cmplx(0.0d0, 0.0d0)) then              
-                scalekx = 0.5d0
-            else 
-                scalekx = 1.0d0 
-            end if
-            
-            myEkin = myEkin &
-                   + real(conjg(uhat(i, j, k)) * uhat(i, j, k)) * scalekx &
-                   + real(conjg(vhat(i, j, k)) * vhat(i, j, k)) * scalekx &
-                   + real(conjg(what(i, j, k)) * what(i, j, k)) * scalekx
-            
-            
-        end do; end do; end do   
-        
-        myEkin = myEkin * (scalemodes ** 2)
-        call mpi_allreduce(myEkin, Ekin, 1, mpi_double_precision, &
-                           mpi_sum, mpi_comm_world, ierr)
-                
-    end subroutine io_Ekinetic
+
     
     subroutine io_Dissipation()
         
@@ -765,7 +741,12 @@ contains
                 write(io_Pars, '(''alpha_x,y,z = '', 3F12.9)') alpha_x, alpha_y, alpha_z
                 write(io_Pars, '(''dt = '', F12.9)') dt
                 write(io_Pars, '(''nu = '', F12.9)') nu
-                write(io_Pars, '(''Q = '', F12.9)') Q
+                if (bandlim) then
+                    write(io_Pars, '(''Pin = '', F12.9)') Pin
+                    write(io_Pars, '(''kF = '', F12.9)') kCutOff
+                else
+                    write(io_Pars, '(''Q = '', F12.9)') Q
+                end if
                 write(io_Pars, '(''Deltak = '', F12.9)') Deltak
                 write(io_Pars, '(''Courant = '', F12.9)') Courant
                 if (initrand) then

@@ -137,11 +137,11 @@ module rhs
             .ge.  ((real(Nx, kind=8) / 2.0d0) * 0.5d0 * alpha_x) ** 2 )) .or. &
                 !* (2.0d0 * alpha_x / 3.0d0)) ** 2)) .or. &
                (abs(kx(k)) .ge. (real(Nx, kind=8) / 2.0d0) &
-                              * (2.0d0 * alpha_x / 4.0d0)  &
+                              * (2.0d0 * alpha_x / 3.0d0)  &
            .or. abs(ky(j)) .ge. (real(Ny, kind=8) / 2.0d0) &
-                              * (2.0d0 * alpha_y / 4.0d0)  &
+                              * (2.0d0 * alpha_y / 3.0d0)  &
            .or. abs(kz(i)) .ge. (real(Nz, kind=8) / 2.0d0) &
-                              * (2.0d0 * alpha_z / 4.0d0)) & ! ) then 
+                              * (2.0d0 * alpha_z / 3.0d0)) & ! ) then 
             .or. ((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
                   (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
                   (kz(i) .eq. cmplx(0.0d0, 0.0d0)))) then
@@ -307,27 +307,27 @@ module rhs
     subroutine rhsEband()
         
         ! Compute total energy in the input band
-        
+        real(kind=8) :: scalex   !scaling to avoid counting kx=0 modes twice
         myEband = 0d0
         
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
 !            print *, k
             absk = sqrt(real(conjg(kx(k)) * kx(k) &
-               + conjg(ky(j)) * ky(j) &
-               + conjg(kz(i)) * kz(i))) ! |k|^2
+                           + conjg(ky(j)) * ky(j) &
+                           + conjg(kz(i)) * kz(i))) 
                
-            if (absk > kCutOff) cycle
+            if (absk .gt. kCutOff) cycle
 
             if (kx(k).eq.cmplx(0.0d0, 0.0d0)) then              
-                scalekx = 0.5d0
+                scalex = 0.5d0
             else 
-                scalekx = 1.0d0 
+                scalex = 1.0d0 
             end if
             
             myEband = myEband &
-                   + real(conjg(uhattemp(i, j, k)) * uhattemp(i, j, k)) * scalekx &
-                   + real(conjg(vhattemp(i, j, k)) * vhattemp(i, j, k)) * scalekx &
-                   + real(conjg(whattemp(i, j, k)) * whattemp(i, j, k)) * scalekx
+                   + real(conjg(uhattemp(i, j, k)) * uhattemp(i, j, k)) * scalex &
+                   + real(conjg(vhattemp(i, j, k)) * vhattemp(i, j, k)) * scalex &
+                   + real(conjg(whattemp(i, j, k)) * whattemp(i, j, k)) * scalex
             
         end do; end do; end do   
         

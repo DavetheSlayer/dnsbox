@@ -3,6 +3,8 @@ module state
     use variables
     implicit none
     
+    real(kind=8) :: scalekx   !scaling to avoid counting kx=0 modes twice
+    
     contains
     
     subroutine stateProject()
@@ -83,11 +85,11 @@ module state
                 .ge.  ((real(Nx, kind=8) / 2.0d0) &
                      * (2.0d0 * alpha_x / 3.0d0)) ** 2)) .or. &
                 (abs(kx(k)) .ge. (real(Nx, kind=8) / 2.0d0) &
-                               * (2.0d0 * alpha_x / 4.0d0)  &
+                               * (2.0d0 * alpha_x / 3.0d0)  &
             .or. abs(ky(j)) .ge. (real(Ny, kind=8) / 2.0d0) &
-                               * (2.0d0 * alpha_y / 4.0d0)  &
+                               * (2.0d0 * alpha_y / 3.0d0)  &
             .or. abs(kz(i)) .ge. (real(Nz, kind=8) / 2.0d0) &
-                               * (2.0d0 * alpha_z / 4.0d0)) & !)then  
+                               * (2.0d0 * alpha_z / 3.0d0)) & !)then  
             .or. ((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
                   (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
                   (kz(i) .eq. cmplx(0.0d0, 0.0d0)))) then
@@ -172,9 +174,9 @@ module state
         ! for description of the procedure see Yoffe 2012, s. 2.2.5
         
         ! constants:                                S7
-        real(kind=8) :: Cone =    8.0d-5            ! 8.0d-2
-        real(kind=8) :: Ctwo =    2.0d0             ! 2.0d0
-        real(kind=8) :: Cthree =  1d-3 !8.2352309d-2      ! 8.2352309d-2
+        real(kind=8) :: Cone =    0.001702          ! 8.0d-2
+        real(kind=8) :: Ctwo =    4.0d0             ! 2.0d0
+        real(kind=8) :: Cthree =  0.08              ! 8.2352309d-2
         real(kind=8) :: Cfour =   2.0d0             ! 2.0d0
         
         if(proc_id .eq. 0) then 
@@ -197,11 +199,25 @@ module state
         call p3dfft_ftran_r2c (u, uhat, 'fft')
         call p3dfft_ftran_r2c (v, vhat, 'fft')
         call p3dfft_ftran_r2c (w, what, 'fft')
+
         
         call stateDealias() ! Dealias
         call stateProject() ! Make state solenoidal
         call stateComputeSpectrum() ! Compute the spectrum
         
+!        call stateEkinetic()
+
+!        if(proc_id .eq. 0) then 
+!            print *, 'Kinetic energy of the random field:'
+!            print *, 'Ekin = ', Ekin
+            
+!            print *, 'spectrum :'
+!            do nk = 1, Nspec
+!                print *, 'Espec (i) =', Espec(nk)
+!            end do
+            
+!        endif        
+                
         
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
             
@@ -215,7 +231,7 @@ module state
                 nk = int(absk / Deltak) + 1
             end if 
             
-            if (nk > Nspec .or. nk .eq. 0) then
+            if (nk .ge. Nspec .or. nk .eq. 0) then
                 ! If |k| = 0 or |k|>k_max:
                 uhat(i, j, k) = 0.0d0
                 vhat(i, j, k) = 0.0d0
@@ -240,6 +256,22 @@ module state
             
             
         end do; end do; end do                       
+
+!        call stateComputeSpectrum() ! Compute the spectrum
+        
+!        call stateEkinetic()
+
+!        if(proc_id .eq. 0) then 
+!            print *, 'Kinetic energy of the random field:'
+!            print *, 'Ekin = ', Ekin
+            
+!            print *, 'spectrum :'
+!            do nk = 1, Nspec
+!                print *, 'Espec (i) =', Espec(nk)
+!            end do
+            
+!        endif        
+                
         
         ! Back to the configuration space:
         call p3dfft_btran_c2r (uhat, u, 'tff')
@@ -381,7 +413,7 @@ module state
                         + real(conjg(what(i, j, k)) * what(i, j, k))
             end if
             
-            if (nk > Nspec .or. nk .eq. 0) cycle
+            if (nk .ge. Nspec .or. nk .eq. 0) cycle
             
             myEspec(nk) = myEspec(nk) &
                         + (real(conjg(uhat(i, j, k)) * uhat(i, j, k)) &
@@ -419,5 +451,33 @@ module state
                            MPI_MAX, MPI_COMM_WORLD, ierr)
         
     end subroutine stateDivergence
+
+    
+    subroutine stateEkinetic()
+        !*************************!
+        ! Average kinetic energy: !
+        !*************************!
+        myEkin = 0d0
+        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
+        !   print *, k
+            if (kx(k).eq.cmplx(0.0d0, 0.0d0)) then              
+                scalekx = 0.5d0
+            else 
+                scalekx = 1.0d0 
+            end if
+            
+            myEkin = myEkin &
+                   + real(conjg(uhat(i, j, k)) * uhat(i, j, k)) * scalekx &
+                   + real(conjg(vhat(i, j, k)) * vhat(i, j, k)) * scalekx &
+                   + real(conjg(what(i, j, k)) * what(i, j, k)) * scalekx
+            
+            
+        end do; end do; end do   
+        
+        myEkin = myEkin * (scalemodes ** 2)
+        call mpi_allreduce(myEkin, Ekin, 1, mpi_double_precision, &
+                           mpi_sum, mpi_comm_world, ierr)
+                
+    end subroutine stateEkinetic
     
 end module state
