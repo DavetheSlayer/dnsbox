@@ -12,20 +12,23 @@ global Nx, Ny, Nz, Nt, alphax, alphay, alphaz,\
        analytic, spherical, random, dt
 
 # Simulation parameters:
-Nx = 64            # Spatial discretization
-Ny = 64            # Spatial discretization
-Nz = 64            # Spatial discretization
+Nx = 32            # Spatial discretization
+Ny = 32            # Spatial discretization
+Nz = 32            # Spatial discretization
 iSaveRate1 = 10    # Save state files every iSaveRate1 time steps
 iSaveRate2 = 1     # Save state files every iSaveRate2 time steps
 alphax = 1.0       # Base wave numbers
 alphay = 1.0       # Base wave numbers
 alphaz = 1.0       # Base wave numbers
-nu = 0.2           # Viscosity           0.2
-Q = 0.5            # Forcing amplitude   0.5
+nu = 0.07          # Viscosity           0.2
+Q = 0.0            # Forcing amplitude   0.5
 Deltak = 1.0       # k-window for shell averaging
 CourantMin = 0.15  # Minimum Courant number
 CourantMax = 0.2   # Maximum Courant number
 tStepMax = 0.01    # Maximum time step
+bandlim = True     # Band-limited forcing if true
+kF = 2.0           # wave number cut off for band limited forcing
+epsW = 0.1         # Rate of energy input for band limited forcing
 
 # Logicals
 spherical = False  # Spherical truncation
@@ -35,7 +38,7 @@ tStepFix = False   # Fixed time-step simulation, if true
 
 # Random initial field generation parameters:
 kzero = 3.0
-uzero = 1.0e-2
+uzero = 1.0e0
 
 
 def setGrid():
@@ -59,12 +62,12 @@ def setGrid():
                                      + list(range(-Ny / 2 + 1, 0))])
     kz = alphaz * np.array([n for n in list(range(0, Nz / 2)) + [0]
                                      + list(range(-Nz / 2 + 1, 0))])
-    
-    
+
+
     kspec = np.arange(Deltak, np.max(kx) * (2.0/3.0) + Deltak, Deltak)
     Espec = np.zeros(kspec.shape)
-    
-    
+
+
     return
 
 
@@ -77,7 +80,7 @@ def alloc():
            uhat, vhat, what, phat, nonlinuhat, nonlinvhat, nonlinwhat,\
            xx, yy, zz, kxm, kym, kzm, kkm, \
            temp, temphat, utemp, vtemp, wtemp, uhattemp, vhattemp, whattemp,\
-           intFact, dealias
+           intFact, dealias, force
 
     u = np.zeros((Nx, Ny, Nz), dtype='float')
     v = np.zeros((Nx, Ny, Nz), dtype='float')
@@ -92,6 +95,10 @@ def alloc():
     wx = np.zeros((Nx, Ny, Nz), dtype='float')
     wy = np.zeros((Nx, Ny, Nz), dtype='float')
     wz = np.zeros((Nx, Ny, Nz), dtype='float')
+
+    omegax = np.zeros((Nx, Ny, Nz), dtype='float')
+    omegay = np.zeros((Nx, Ny, Nz), dtype='float')
+    omegaz = np.zeros((Nx, Ny, Nz), dtype='float')
 
     uhat = np.zeros((Nx, Ny, Nz), dtype='complex')
     vhat = np.zeros((Nx, Ny, Nz), dtype='complex')
@@ -123,7 +130,8 @@ def alloc():
     wtemp = np.zeros((Nx, Ny, Nz), dtype='float')
 
     dealias = np.ones((Nx, Ny, Nz), dtype='float')
-    
+    force = np.ones((Nx, Ny, Nz), dtype='float')
+
     return
 
 
@@ -179,7 +187,7 @@ def init():
     """
     global t, lamb, sk, sl, sm, A, kxm, kym, kzm, xx, yy, zz, \
            u, v, w, uhat, vhat, what, saveCount, dt, intFact, \
-           uhattemp, vhattemp, whattemp, dealias
+           uhattemp, vhattemp, whattemp, dealias, force
     print('Initiating variables, grids, and fields')
     t = 0.0
     setGrid()
@@ -197,30 +205,34 @@ def init():
                 xx[i, j, k] = x[i]                                    # lint:ok
                 yy[i, j, k] = y[j]                                    # lint:ok
                 zz[i, j, k] = z[k]                                    # lint:ok
-                
+
                 kk = np.real(kx[i] ** 2) \
                    + np.real(ky[j] ** 2) \
                    + np.real(kz[k] ** 2)  # k^2
-                
+
                 if kx[i] == 0 and ky[j] == 0 and kz[k] == 0:
                     kkm[i, j, k] = 1.0e-13  # to avoid div by zeros
                 else:
                     kkm[i, j, k] = kk
-                
+
                 # dealias array sets |kk| = 0 and |kk| > |kkmax| modes to zero
                 # when element-wise multiplied an Fourier-space array.
-                if spherical and (np.sqrt(kk) > (2.0 / 3.0) * kxMax 
+                if spherical and (np.sqrt(kk) >= (2.0 / 3.0) * kxMax
                                or kk == 0.0):
-                    
+
                     dealias[i, j, k] = 0.0
-                    
-                elif (kx[i] >= (2.0 / 3.0) * kxMax or 
+
+                elif (kx[i] >= (2.0 / 3.0) * kxMax or
                       ky[j] >= (2.0 / 3.0) * kyMax or
                       kz[k] >= (2.0 / 3.0) * kzMax or
                       kk == 0.0):
-                    
+
                     dealias[i, j, k] = 0.0
-                
+
+                if np.sqrt(kk) >= kF:
+
+                    force[i, j, k] = 0.0
+
 
     if analytic:
         # Initiate simulation from an analytical solution for test. See
@@ -274,7 +286,7 @@ def init():
 
     dt = tStepMax  # Initial time-step setting
     intFact = exp((- nu * kkm + Q) * dt)  # Set the integrating factor
-    u2uhat()  # Fourier transform initial condition 
+    u2uhat()  # Fourier transform initial condition
     uhat = dealias * uhat
     vhat = dealias * vhat
     what = dealias * what
@@ -343,29 +355,51 @@ def nonLinear():
     """
     Compute nonlinear term for (u,v,w)hattemp
     """
-    global nonlinuhat, nonlinvhat, nonlinwhat, phat
+    global nonlinuhat, nonlinvhat, nonlinwhat, phat, omegax, omegay, omegaz, \
+           utemp, vtemp, wtemp, temp
 
     derivatives()  # compute derivatives
     utemp = np.real(ifftn(uhattemp))
     vtemp = np.real(ifftn(vhattemp))
     wtemp = np.real(ifftn(whattemp))
-
+    
+    omegax = wy - vz
+    omegay = uz - wx
+    omegaz = vx - uy
+    
     # Compute N-S nonlinear terms:
-    temp = utemp * ux + vtemp * uy + wtemp * uz
+    # temp = utemp * ux + vtemp * uy + wtemp * uz
+    temp = omegay * wtemp - omegaz * vtemp
     nonlinuhat = fftn(temp)
-
-    temp = utemp * vx + vtemp * vy + wtemp * vz
+    
+    # temp = utemp * vx + vtemp * vy + wtemp * vz
+    temp = omegaz * utemp - omegax * wtemp
     nonlinvhat = fftn(temp)
-
-    temp = utemp * wx + vtemp * wy + wtemp * wz
+    
+    # temp = utemp * wx + vtemp * wy + wtemp * wz
+    temp = omegax * vtemp - omegay * utemp
     nonlinwhat = fftn(temp)
 
     # Pressure
     phat = 1j * (kxm * nonlinuhat + kym * nonlinvhat + kzm * nonlinwhat) / kkm
 
-    nonlinuhat = dealias * (- nonlinuhat - 1j * kxm * phat)
-    nonlinvhat = dealias * (- nonlinvhat - 1j * kym * phat)
-    nonlinwhat = dealias * (- nonlinwhat - 1j * kzm * phat)
+    if bandlim:
+        Eband = 0.5 * np.real(np.sum(np.conjugate(uhat) * (force * uhat)
+                                   + np.conjugate(vhat) * (force * vhat)
+                                   + np.conjugate(what) * (force * what))
+                                    / (Nx * Ny * Nz) ** 2)
+
+        nonlinuhat = dealias * (- nonlinuhat - 1j * kxm * phat 
+                               + (epsW / (2.0 * Eband)) * uhattemp)
+        nonlinvhat = dealias * (- nonlinvhat - 1j * kym * phat
+                               + (epsW / (2.0 * Eband)) * vhattemp)
+        nonlinwhat = dealias * (- nonlinwhat - 1j * kzm * phat
+                               + (epsW / (2.0 * Eband)) * whattemp)
+
+    else:
+        nonlinuhat = dealias * (- nonlinuhat - 1j * kxm * phat)
+        nonlinvhat = dealias * (- nonlinvhat - 1j * kym * phat)
+        nonlinwhat = dealias * (- nonlinwhat - 1j * kzm * phat)
 
     return
 
@@ -412,18 +446,18 @@ def checkError():
 
     print('t = ', t)
 
-    uErrorMax = np.max((- A / (sk ** 2 + sl ** 2)) \
+    uErrorMax = np.max((- A / (sk ** 2 + sl ** 2))
                      * (lamb * sl * cos(sk * xx) * sin(sl * yy) * sin(sm * zz)
-                       + sm * sk * sin(sk * xx) * cos(sl * yy) * cos(sm * zz)) \
-                     * exp(-1.0 * (lamb ** 2) * nu * t) - u)          # lint:ok
+                       + sm * sk * sin(sk * xx) * cos(sl * yy) * cos(sm * zz))
+                     * exp(-1.0 * (lamb ** 2) * nu * t) - u)
 
-    vErrorMax = np.max((A / (sk ** 2 + sl ** 2)) \
+    vErrorMax = np.max((A / (sk ** 2 + sl ** 2))
                      * (lamb * sk * sin(sk * xx) * cos(sl * yy) * sin(sm * zz)
-                       - sm * sl * cos(sk * xx) * sin(sl * yy) * cos(sm * zz)) \
-                     * exp(-1.0 * (lamb ** 2) * nu * t) - v)          # lint:ok
+                       - sm * sl * cos(sk * xx) * sin(sl * yy) * cos(sm * zz))
+                     * exp(-1.0 * (lamb ** 2) * nu * t) - v)
 
-    wErrorMax = np.max(A * cos(sk * xx) * cos(sl * yy) * sin(sm * zz) \
-                     * exp(-1.0 * (lamb ** 2) * nu * t) - w)          # lint:ok
+    wErrorMax = np.max(A * cos(sk * xx) * cos(sl * yy) * sin(sm * zz)
+                     * exp(-1.0 * (lamb ** 2) * nu * t) - w)
 
     print('Maximum errors at the final time step are: ')
     print(uErrorMax, vErrorMax, wErrorMax)
@@ -483,14 +517,14 @@ def stats():
     return
 
 def spectrum(plot=True):
-    
+
     global Espec, Ezero
     Ezero = 0.0
     Espec[:] = 0.0
     for i in range(Nx):
         for j in range(Ny):
             for k in range(Nz):
-                
+
                 absk = np.sqrt(np.real(kx[i] ** 2) \
                      + np.real(ky[j] ** 2) \
                      + np.real(kz[k] ** 2))  # |k|
@@ -498,14 +532,14 @@ def spectrum(plot=True):
                     nk = int(absk / Deltak) - 1.0  # python counts from 0
                 else:
                     nk = int(absk / Deltak)
-                
+
                 if absk == 0.0:
                     Ezero = Ezero + 0.5 * np.real(np.sum(
                 np.conjugate(uhat[i,j,k]) * uhat[i,j,k]
               + np.conjugate(vhat[i,j,k]) * vhat[i,j,k]
               + np.conjugate(what[i,j,k]) * what[i,j,k])) \
               / (Nx * Ny * Nz) ** 2
-                    
+
                 if nk >= 0 and nk < len(kspec):
                     Espec[nk] = Espec[nk] + 0.5 * np.real(np.sum(
                 np.conjugate(uhat[i,j,k]) * uhat[i,j,k]
@@ -513,9 +547,9 @@ def spectrum(plot=True):
               + np.conjugate(what[i,j,k]) * what[i,j,k])) \
               / (Nx * Ny * Nz) ** 2 * Deltak
 
-    print("Ezero = ", Ezero)    
+    print("Ezero = ", Ezero)
     loglog(kspec, Espec)
     show()
-    
+
     return
-    
+

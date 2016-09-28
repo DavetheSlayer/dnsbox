@@ -29,8 +29,8 @@ program nsbox
     if( initrand ) then 
         
         ! Generate a random initial state
-        call stateInitRand()
-!        call stateInitRandConf()
+!        call stateInitRand()
+        call stateInitRandConf()
         
     elseif ( analytic ) then 
         

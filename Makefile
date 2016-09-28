@@ -1,13 +1,13 @@
-COMPILER =  /cluster/home/nbudanur/local2/bin/mpif90 
+COMPILER =  /mnt/nfs/clustersw/jessie/openmpi-2.0.1/bin/mpif90 
 
-FLAGS = -DGNU -DMEASURE -DSTRIDE1 -DFFTW -I/cluster/home/nbudanur/local2/include/ -g -O2
+FLAGS = -DGNU -DMEASURE -DSTRIDE1 -DFFTW -I/cluster/home/nbudanur/local4/include/ -g -O2
 
-LIBS = /cluster/home/nbudanur/local2/lib/libp3dfft.a \
-	   /cluster/home/nbudanur/local2/lib/libfftw3.a \
-	   /clusterhome/nbudanur/local2/lib/libhdf5hl_fortran.a \
-	   /clusterhome/nbudanur/local2/lib/libhdf5_hl.a \
-	   /clusterhome/nbudanur/local2/lib/libhdf5_fortran.a \
-	   /clusterhome/nbudanur/local2/lib/libhdf5.a -lz -ldl
+LIBS = /cluster/home/nbudanur/local4/lib/libp3dfft.a \
+	   /mnt/nfs/clustersw/jessie/fftw-3.3.4/lib/libfftw3.a \
+	   /clusterhome/nbudanur/local4/lib/libhdf5hl_fortran.a \
+	   /clusterhome/nbudanur/local4/lib/libhdf5_hl.a \
+	   /clusterhome/nbudanur/local4/lib/libhdf5_fortran.a \
+	   /clusterhome/nbudanur/local4/lib/libhdf5.a -lz -ldl
 	   
 SOURCES = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboxheun.f90 
 SOURCESHEUN = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboxheun.f90 

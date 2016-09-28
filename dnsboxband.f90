@@ -92,33 +92,11 @@ program nsbox
     n = n + 1
         
         ! compute the nonlinear term for uhattemp:
-        call rhsNonlinear()
         call rhsEband()
+        call rhsNonlinear()
 
-!        if(proc_id .eq. 0) then 
-!            print *, 'Eband =', Eband
-!        endif        
-        
         ! Predictor
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-            
-            absk = sqrt(real(conjg(kx(k)) * kx(k) &
-                           + conjg(ky(j)) * ky(j) &
-                           + conjg(kz(i)) * kz(i))) ! |k|
-
-            if (absk .gt. kCutOff) then
-
-                intFact(i, j, k) = exp((nu * (kx(k) * kx(k) &
-                                            + ky(j) * ky(j) &
-                                            + kz(i) * kz(i))) * dt)
-
-            else
-
-                intFact(i, j, k) = exp((nu * (kx(k) * kx(k) &
-                                            + ky(j) * ky(j) &
-                                            + kz(i) * kz(i)) &
-                                      + Pin / (2.0d0 * Eband)) * dt)                
-            end if
             
             ! Predicted next step for corrector calculation:
             uhattemp(i, j, k) = intFact(i, j, k) &
@@ -148,6 +126,7 @@ program nsbox
         end do; end do; end do    
         
         ! compute the nonlinear term for uhattemp:
+        call rhsEband()        
         call rhsNonlinear()
         
         ! Corrector
@@ -288,14 +267,12 @@ subroutine setTimeStep()
         dt = tStepMax
     end if
     
+    call rhsIntFact() ! Recompute the integration factor with the new time step
     call io_Courant()
 	if (proc_id.eq.0) then
 		print *,'time step set to', dt
         print *, 'new Courant number', Courant
-	end if
-    
-    
-            
+	end if            
 end subroutine setTimeStep
 
 end program nsbox

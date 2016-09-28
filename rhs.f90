@@ -72,6 +72,9 @@ module rhs
             intFact(i, j, k) = exp((nu * (kx(k) * kx(k) &
                                         + ky(j) * ky(j) &
                                         + kz(i) * kz(i)) + Q) * dt)
+!            intFact(i, j, k) = exp((nu * (kx(k) * kx(k) &
+!                                        + ky(j) * ky(j) &
+!                                        + kz(i) * kz(i))) * dt)
         end do; end do; end do
         
     end subroutine rhsIntFact
@@ -128,7 +131,9 @@ module rhs
 !                                 * (2.0d0 * alpha_y / 3.0d0))  &
 !            .or. (abs(kz(i)) .gt.  (real(Nz, kind=8) / 2.0d0) &
 !                                 * (2.0d0 * alpha_z / 3.0d0))) then
-            
+            absk = sqrt(real(conjg(kx(k)) * kx(k) &
+                           + conjg(ky(j)) * ky(j) &
+                           + conjg(kz(i)) * kz(i))) ! |k|
             ! Dealiasing:
             if((spherical .and. &
                (abs(kx(k)) ** 2.0d0 &
@@ -154,7 +159,7 @@ module rhs
                 if((kx(k) .eq. cmplx(0.0d0, 0.0d0)) .and. &
                    (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
                    (kz(i) .eq. cmplx(0.0d0, 0.0d0))) then
-                    phat(i, j, k) = 0.0d0
+                    phat(i, j, k) = 0.0d0                
                 else               
                     phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
                                             + ky(j) * nonlinvhat(i, j, k) & 
@@ -164,13 +169,28 @@ module rhs
                                                + kz(i) * kz(i))
                 end if
                 ! from n_k(u) to N_k(u)
-                nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
-                                      - kx(k) * phat(i, j, k)
-                nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
-                                      - ky(j) * phat(i, j, k)
-                nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
-                                      - kz(i) * phat(i, j, k)
-                    
+                if (bandlim .and. absk .lt. kCutOff) then
+                    nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
+                      - kx(k) * phat(i, j, k) &
+                      + (Pin / (2.0d0 * Eband)) * uhattemp(i, j, k)
+                    nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
+                      - ky(j) * phat(i, j, k) &
+                      + (Pin / (2.0d0 * Eband)) * vhattemp(i, j, k)  
+                    nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
+                      - kz(i) * phat(i, j, k) &
+                      + (Pin / (2.0d0 * Eband)) * whattemp(i, j, k)  
+                else
+                    nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
+                                          - kx(k) * phat(i, j, k) ! &
+                                          ! + Q * uhattemp(i, j, k)
+                    nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
+                                          - ky(j) * phat(i, j, k) ! &
+                                          ! + Q * vhattemp(i, j, k)
+                    nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
+                                          - kz(i) * phat(i, j, k) ! &
+                                          ! + Q * whattemp(i, j, k)
+                end if
+                
             end if                
             
         end do; end do; end do
