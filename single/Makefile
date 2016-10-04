@@ -1,27 +1,14 @@
 COMPILER =  gfortran
 
-FLAGS = -DGNU -DMEASURE -DSTRIDE1 -DFFTW -I/cluster/home/nbudanur/local4/include/ -g -O2
-
-LIBS = /cluster/home/nbudanur/local4/lib/libp3dfft.a \
-	   /mnt/nfs/clustersw/jessie/fftw-3.3.4/lib/libfftw3.a \
-	   /clusterhome/nbudanur/local4/lib/libhdf5hl_fortran.a \
-	   /clusterhome/nbudanur/local4/lib/libhdf5_hl.a \
-	   /clusterhome/nbudanur/local4/lib/libhdf5_fortran.a \
-	   /clusterhome/nbudanur/local4/lib/libhdf5.a -lz -ldl
+FLAGS = -lfftw3 
+INCLUDE = /usr/local/include/
+LIB = /usr/local/lib
 	   
-SOURCES = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboxheun.f90 
-SOURCESHEUN = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboxheun.f90 
-SOURCESBAND = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboxband.f90 
-SOURCESIMP = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboximplicit.f90 
-SOURCESADJ = parameters.f90 variablesAdj.f90 state.f90 rhsAdj.f90 io.f90 dnsboxAdj.f90 
-SOURCESPOST = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 post.f90 
+SOURCES = parameters.f90 variables.f90 state.f90 dnsbox.f90 
 
 ALL: $(SOURCES)
-	 ${COMPILER} -o dns.x $(FLAGS) $(SOURCES) $(LIBS)
+	 ${COMPILER} -o dns.x $(SOURCES) -I$(INCLUDE) $(FLAGS) -L$(LIB)
 
 clean:
 	rm -f *.o
 	rm -f *.mod
-
-adj: $(SOURCESADJ)
-	 ${COMPILER} -o dnsadj.x $(FLAGS) $(SOURCESADJ) $(LIBS)

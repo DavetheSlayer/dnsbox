@@ -452,7 +452,6 @@ module state
         
     end subroutine stateDivergence
 
-    
     subroutine stateEkinetic()
         !*************************!
         ! Average kinetic energy: !
