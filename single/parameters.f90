@@ -9,11 +9,11 @@ module parameters
 
     implicit none
     !simulation parameters:
-    integer(kind=4), parameter      :: Nx = 64! 256
-    integer(kind=4), parameter      :: Ny = 64! 256
-    integer(kind=4), parameter      :: Nz = 64! 256
+    integer(kind=4), parameter      :: Nx = 64           ! 256
+    integer(kind=4), parameter      :: Ny = 64           ! 256
+    integer(kind=4), parameter      :: Nz = 64           ! 256
     integer(kind=4), parameter      :: Nh = Nx/2 + 1     ! Real fft, x dimension
-    integer(kind=4), parameter      :: Nt = 100000       ! Number of t-steps
+    integer(kind=4), parameter      :: Nt = 100          ! Number of t-steps
     integer(kind=4), parameter      :: iSaveRate1 = 1000 ! save rate for state files
     integer(kind=4), parameter      :: iSaveRate2 = 100  ! save rate for analysis files
     real(kind=4), parameter         :: alpha_x = 1.0d0   ! 2 pi / Lx 
@@ -33,10 +33,10 @@ module parameters
     real(kind=8), parameter         :: CourantMin= 0.2d0 ! min Courant number
     real(kind=8), parameter         :: CourantMax= 0.15d0! max Courant number
     real(kind=8), parameter         :: tStepMax = 1.0d-2 ! max time step 
-    logical, parameter              :: initrand = .true. ! if true, random 
+    logical, parameter              :: initrand = .false. ! if true, random 
                                                          ! initial condition    
     logical, parameter              :: tStepFix = .false.! fixed time step
-    logical, parameter              :: analytic = .false.! analytic solution 
+    logical, parameter              :: analytic = .true. ! analytic solution 
                                                          ! for checking integrator
     real(kind = 8), parameter       :: c = 0.5d0         ! implicitness param.
     logical, parameter              :: spherical = .false.! spherical trunc. 

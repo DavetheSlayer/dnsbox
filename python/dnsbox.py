@@ -384,9 +384,9 @@ def nonLinear():
     phat = 1j * (kxm * nonlinuhat + kym * nonlinvhat + kzm * nonlinwhat) / kkm
 
     if bandlim:
-        Eband = 0.5 * np.real(np.sum(np.conjugate(uhat) * (force * uhat)
-                                   + np.conjugate(vhat) * (force * vhat)
-                                   + np.conjugate(what) * (force * what))
+        Eband = 0.5 * np.real(np.sum(np.conjugate(uhattemp) * (force * uhattemp)
+                                   + np.conjugate(vhattemp) * (force * vhattemp)
+                                   + np.conjugate(whattemp) * (force * whattemp))
                                     / (Nx * Ny * Nz) ** 2)
 
         nonlinuhat = dealias * (- nonlinuhat - 1j * kxm * phat 

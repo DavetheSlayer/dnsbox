@@ -8,8 +8,7 @@ module variables
     real(kind=8)            :: dt= 0.001d0             ! Time step size
     real(kind=8), dimension(:), allocatable     :: x, y, z, time, allchg
     real(kind=8)            :: scalemodes, chg, factor!, scalemodessquare
-    real(kind=8)            :: eps                    ! epsilon to avoid divs
-                                                      ! by 0
+    real(kind=8)            :: intfact                ! integration factor
     
     real(kind=8), dimension(:, :, :), allocatable :: u, v, w, &
                                                      ux, uy, uz, &
@@ -56,8 +55,10 @@ module variables
     real(kind = 8) :: Ezero       ! Energy contained in k=0
     
     ! fftw variables
-    integer ( kind = 8 ) plan_forward_u, plan_forward_v, plan_forward_w
-    integer ( kind = 8 ) plan_backward_u, plan_backward_v, plan_backward_w
+    integer ( kind = 8 ) plan_forward_u, plan_forward_v, plan_forward_w, &
+                         plan_forward_temp
+    integer ( kind = 8 ) plan_backward_u, plan_backward_v, plan_backward_w, &
+                         plan_backward_temp
     
     contains
     
@@ -192,19 +193,24 @@ module variables
         
         ! Plan ffts:
         
-        call dfftw_plan_dft_r2c_3d_(plan_forward_u, nx, ny, nz, & 
+        call dfftw_plan_dft_r2c_3d_(plan_forward_u, Nx, Ny, Nz, &
                                     utemp, uhattemp, FFTW_ESTIMATE)
-        call dfftw_plan_dft_r2c_3d_(plan_forward_v, nx, ny, nz, & 
+        call dfftw_plan_dft_r2c_3d_(plan_forward_v, Nx, Ny, Nz, &
                                     vtemp, vhattemp, FFTW_ESTIMATE)
-        call dfftw_plan_dft_r2c_3d_(plan_forward_w, nx, ny, nz, &
+        call dfftw_plan_dft_r2c_3d_(plan_forward_w, Nx, Ny, Nz, &
                                     wtemp, whattemp, FFTW_ESTIMATE)
+        call dfftw_plan_dft_r2c_3d_(plan_forward_temp, Nx, Ny, Nz, &
+                                    temp_r, temp_c, FFTW_ESTIMATE)
 
-        call dfftw_plan_dft_c2r_3d_(plan_backward_u, nx, ny, nz, &
+        call dfftw_plan_dft_c2r_3d_(plan_backward_u, Nx, Ny, Nz, &
                                     uhattemp, utemp, FFTW_ESTIMATE)
-        call dfftw_plan_dft_c2r_3d_(plan_backward_v, nx, ny, nz, &
+        call dfftw_plan_dft_c2r_3d_(plan_backward_v, Nx, Ny, Nz, &
                                     vhattemp, vtemp, FFTW_ESTIMATE)
-        call dfftw_plan_dft_c2r_3d_(plan_backward_w, nx, ny, nz, &
+        call dfftw_plan_dft_c2r_3d_(plan_backward_w, Nx, Ny, Nz, &
                                     whattemp, wtemp, FFTW_ESTIMATE)
+        call dfftw_plan_dft_c2r_3d_(plan_backward_temp, Nx, Ny, Nz, &
+                                    temp_c, temp_r, FFTW_ESTIMATE)
+        
         
     end subroutine var_init
     
@@ -213,9 +219,11 @@ module variables
         call dfftw_destroy_plan_(plan_forward_u)
         call dfftw_destroy_plan_(plan_forward_v)
         call dfftw_destroy_plan_(plan_forward_w)
+        call dfftw_destroy_plan_(plan_forward_temp)
         call dfftw_destroy_plan_(plan_backward_u)
         call dfftw_destroy_plan_(plan_backward_v)
         call dfftw_destroy_plan_(plan_backward_w)
+        call dfftw_destroy_plan_(plan_backward_temp)
 
         deallocate(x, y, z, time, allchg, kSpec, Espec, &
                    u, v, w, ux, uy, uz, vx, vy, vz, wx, wy, wz, &

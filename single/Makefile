@@ -4,10 +4,14 @@ FLAGS = -lfftw3
 INCLUDE = /usr/local/include/
 LIB = /usr/local/lib
 	   
-SOURCES = parameters.f90 variables.f90 state.f90 dnsbox.f90 
+SOURCES = parameters.f90 variables.f90 state.f90 rhs.f90 dnsbox.f90 
+SOURCESTEST = parameters.f90 variables.f90 state.f90 rhs.f90 test.f90 
 
 ALL: $(SOURCES)
 	 ${COMPILER} -o dns.x $(SOURCES) -I$(INCLUDE) $(FLAGS) -L$(LIB)
+
+test: $(SOURCESTEST)
+	  ${COMPILER} -o test.x $(SOURCESTEST) -I$(INCLUDE) $(FLAGS) -L$(LIB)
 
 clean:
 	rm -f *.o

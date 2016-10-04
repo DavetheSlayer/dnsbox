@@ -88,6 +88,26 @@ module state
         end do; end do; end do               
         
     end subroutine state_uhat2u
+
+    subroutine state_copy_conf(a, b)
+        ! Copy configuration space field a to b
+        real(kind=8), dimension(Nx, Ny, Nz):: a, b
+        
+        do i=1,Nx; do j=1,Ny; do k=1,Nz
+            b(i, j, k) = a(i, j, k)
+        end do; end do; end do        
+        
+    end subroutine state_copy_conf
+
+    subroutine state_copy_fourier(a, b)
+        ! Copy fourier space field a to b
+        complex(kind=8), dimension(Nh, Ny, Nz):: a, b
+        
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            b(i, j, k) = a(i, j, k)
+        end do; end do; end do        
+        
+    end subroutine state_copy_fourier
     
     subroutine state_project()
         ! Apply projection on (u,v,w)hat to make it divergence-free:
@@ -134,15 +154,15 @@ module state
                (kx(i) ** 2.0d0 + ky(j) ** 2.0d0 + kz(k) ** 2.0d0 & 
                 .ge.  ((real(Nx, kind=8) / 2.0d0) &
                      * (2.0d0 * alpha_x / 3.0d0)) ** 2)) .or. &
-                (kx(k) .ge. (real(Nx, kind=8) / 2.0d0) &
+                (kx(i) .ge. (real(Nx, kind=8) / 2.0d0) &
                           * (2.0d0 * alpha_x / 3.0d0)  &
             .or. ky(j) .ge. (real(Ny, kind=8) / 2.0d0) &
                           * (2.0d0 * alpha_y / 3.0d0)  &
-            .or. kz(i) .ge. (real(Nz, kind=8) / 2.0d0) &
+            .or. kz(k) .ge. (real(Nz, kind=8) / 2.0d0) &
                           * (2.0d0 * alpha_z / 3.0d0)) & 
-            .or. ((kx(k) .eq. 0.0d0) .and. &
+            .or. ((kx(i) .eq. 0.0d0) .and. &
                   (ky(j) .eq. 0.0d0) .and. &
-                  (kz(i) .eq. 0.0d0))) then
+                  (kz(k) .eq. 0.0d0))) then
 
                   uhat(i, j, k) = 0.0d0
                   vhat(i, j, k) = 0.0d0
@@ -169,7 +189,7 @@ module state
             end if
             
             ! Find which window current k belongs to:
-            absk = sqrt(kx(k) * kx(k) + ky(j) * ky(j) + kz(i) * kz(i)) ! |k|
+            absk = sqrt(kx(i) * kx(i) + ky(j) * ky(j) + kz(k) * kz(k)) ! |k|
             
             if (absk < real(int(absk / Deltak)) + 0.5 * Deltak) then
                 nk = int(absk / Deltak)
@@ -281,16 +301,16 @@ module state
 
         do k=1,Nz; do j=1,Ny; do i=1,Nx
                 
-                    u(i,j,k) = -0.5 * (factor * cos(x(i)) * sin(y(j)) * sin(z(k)) &
-                                     + sin(x(i)) * cos(y(j)) * cos(z(k))) &
-                                     * exp(- (factor ** 2) * time(1) * nu)                                     
-                    
-                    v(i,j,k) = 0.5 * (factor * sin(x(i)) * cos(y(j)) * sin(z(k)) &
-                                    - cos(x(i)) * sin(y(j)) * cos(z(k))) &
-                                    * exp(-(factor**2)*time(1) * nu)
-                    
-                    w(i,j,k) = 1.0 * cos(x(i)) * cos(y(j)) * sin(z(k)) & 
-                                   * exp(-(factor**2)*time(1) * nu)                 
+            u(i,j,k) = -0.5 * (factor * cos(x(i)) * sin(y(j)) * sin(z(k)) &
+                             + sin(x(i)) * cos(y(j)) * cos(z(k))) &
+                             * exp(- (factor ** 2) * time(1) * nu)                                     
+            
+            v(i,j,k) = 0.5 * (factor * sin(x(i)) * cos(y(j)) * sin(z(k)) &
+                            - cos(x(i)) * sin(y(j)) * cos(z(k))) &
+                            * exp(-(factor**2)*time(1) * nu)
+            
+            w(i,j,k) = 1.0 * cos(x(i)) * cos(y(j)) * sin(z(k)) & 
+                           * exp(-(factor**2)*time(1) * nu)                 
                     
         end do; end do; end do
         
@@ -304,7 +324,7 @@ module state
         do i=1,Nh; do j=1,Ny; do k=1,Nz
             
             ! Spectrum scale factor:
-            if (kx(i).eq. 0.0d0) then              
+            if (kx(i) .eq. 0.0d0) then              
                 scalekx = 0.5d0
             else 
                 scalekx = 1.0d0 
@@ -320,5 +340,35 @@ module state
         end do; end do; end do   
                 
     end subroutine state_kinetic
+    
+    subroutine state_check_error()
+        
+        factor = sqrt(3.0d0)
+        ! Back to the configuration space:
+        call state_uhat2u()
+                
+        ! Error in final numerical solution:
+                
+        do k=1,Nz; do j=1,Ny; do i=1,Nx
+                    
+            utemp(i, j, k) = u(i, j, k) &
+                            - (-0.5*( factor*cos(x(i))*sin(y(j))*sin(z(k))&
+                            +sin(x(i))*cos(y(j))*cos(z(k)) )*exp(-(factor**2)*time(Nt+1) * nu))
+                    
+            vtemp(i, j, k) = v(i, j, k) &
+                            - (0.5*(  factor*sin(x(i))*cos(y(j))*sin(z(k))&
+                            -cos(x(i))*sin(y(j))*cos(z(k)) )*exp(-(factor**2)*time(Nt+1) * nu))
+                    
+            wtemp(i, j, k) = w(i, j, k) &
+                            - (cos(x(i))*cos(y(j))*sin(z(k))*exp(-(factor**2)*time(Nt+1) * nu))
+                                
+        end do; end do; end do        
+
+        chg = maxval(abs(utemp)) + maxval(abs(vtemp)) + maxval(abs(wtemp))
+        
+        print *, 'The error at the final timestep is ', chg
+        
+    end subroutine state_check_error    
+    
     
 end module state
