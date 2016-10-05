@@ -88,7 +88,7 @@ module variables
         print *, 'Nspec = ', Nspec
         
         ! Allocate common arrays:
-        allocate (x(1:Nx), y(1:Ny), z(1:Nz), kx(1:Nx), ky(1:Ny), kz(1:Nz), & 
+        allocate (x(1:Nx), y(1:Ny), z(1:Nz), kx(1:Nh), ky(1:Ny), kz(1:Nz), & 
                   time(1:Nt+1), allchg(1:3), &
                   kSpec(1:Nspec), Espec(1:Nspec), &
                   stat=AllocateStatus)
@@ -145,9 +145,9 @@ module variables
         end do
         kx(1 + Nx/2) = 0.0d0
         
-        do i = 1, Nx/2 - 1
-            kx(i + 1 + Nx/2) = -kx(1 - i + Nx/2)
-        end do
+!        do i = 1, Nx/2 - 1
+!            kx(i + 1 + Nx/2) = -kx(1 - i + Nx/2)
+!        end do
 
         ind = 1
         do i = -Nx/2, Nx/2 - 1

@@ -340,7 +340,133 @@ module state
         end do; end do; end do   
                 
     end subroutine state_kinetic
+
+    subroutine state_derivatives()
+        ! Compute space-derivatives of u,v,w from (u,v,w)hattemp
     
+        ! Derivative of u with respect to x, y, z:
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            temp_c(i, j, k) = uhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kx(i) &
+                            * scalemodes
+        end do; end do; end do
+        call dfftw_execute_(plan_backward_temp)
+        call state_copy_conf(temp_r, ux)
+        
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            temp_c(i, j, k) = uhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * ky(j) &
+                            * scalemodes
+        end do; end do; end do
+        call dfftw_execute_(plan_backward_temp)
+        call state_copy_conf(temp_r, uy)
+                
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            temp_c(i, j, k) = uhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kz(k) &
+                            * scalemodes
+        end do; end do; end do
+        call dfftw_execute_(plan_backward_temp)
+        call state_copy_conf(temp_r, uz)
+
+        ! Derivative of v with respect to x, y, z:
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            temp_c(i, j, k) = vhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kx(i) &
+                            * scalemodes
+        end do; end do; end do
+        call dfftw_execute_(plan_backward_temp)
+        call state_copy_conf(temp_r, vx)
+        
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            temp_c(i, j, k) = vhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * ky(j) &
+                            * scalemodes
+        end do; end do; end do
+        call dfftw_execute_(plan_backward_temp)
+        call state_copy_conf(temp_r, vy)
+                
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            temp_c(i, j, k) = vhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kz(k) &
+                            * scalemodes
+        end do; end do; end do
+        call dfftw_execute_(plan_backward_temp)
+        call state_copy_conf(temp_r, vz)
+           
+        ! Derivative of w with respect to x, y, z:
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            temp_c(i, j, k) = whattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kx(i) &
+                            * scalemodes
+        end do; end do; end do
+        call dfftw_execute_(plan_backward_temp)
+        call state_copy_conf(temp_r, wx)
+        
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            temp_c(i, j, k) = whattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * ky(j) &
+                            * scalemodes
+        end do; end do; end do
+        call dfftw_execute_(plan_backward_temp)
+        call state_copy_conf(temp_r, wy)
+                
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            temp_c(i, j, k) = whattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kz(k) &
+                            * scalemodes
+        end do; end do; end do
+        call dfftw_execute_(plan_backward_temp)
+        call state_copy_conf(temp_r, wz)
+        
+    end subroutine state_derivatives
+
+    subroutine state_dissipation()
+        
+        !*******************!
+        ! Dissipation rate: !
+        !*******************!        
+        call state_derivatives() ! Compute derivatives for dissipation calculation
+        
+        do i=1,Nx; do j=1,Ny; do k=1,Nz  
+            Disp = Disp + ux(i, j, k) * ux(i, j, k) &
+                        + uy(i, j, k) * uy(i, j, k) &
+                        + uz(i, j, k) * uz(i, j, k) &
+                        + vx(i, j, k) * vx(i, j, k) &
+                        + vy(i, j, k) * vy(i, j, k) &
+                        + vz(i, j, k) * vz(i, j, k) &
+                        + wx(i, j, k) * wx(i, j, k) &
+                        + wy(i, j, k) * wy(i, j, k) &
+                        + wz(i, j, k) * wz(i, j, k) 
+                            
+        end do; end do; end do        
+        
+        Disp = Disp * nu * scalemodes
+        
+    end subroutine state_dissipation
+
+    subroutine state_divergence()
+
+        ! Derivatives are already computed elsewhere. S
+        ! Sole purpose of this function is to check whether the flow stays
+        ! divergence free
+        
+        do i=1,Nx; do j=1,Ny; do k=1,Nz  
+            
+            temp_r(i, j, k) = ux(i, j, k) + vy(i, j, k) + wz(i, j, k)
+                                
+        end do; end do; end do                
+        
+        divMax = maxval(temp_r)
+        
+    end subroutine state_divergence
+        
+    subroutine state_vorticity()
+        ! computes vorticity
+        ! should be called after state_derivatives()
+        
+        do i=1,Nx; do j=1,Ny; do k=1,Nz
+            
+            ! omegax:        
+            omegax(i, j, k) = wy(i, j, k) - vz(i, j, k)
+            omegay(i, j, k) = uz(i, j, k) - wx(i, j, k)
+            omegaz(i, j, k) = vx(i, j, k) - uy(i, j, k)
+                                
+        end do; end do; end do        
+        
+    end subroutine state_vorticity
+
     subroutine state_check_error()
         
         factor = sqrt(3.0d0)

@@ -1,11 +1,11 @@
 COMPILER =  gfortran
 
-FLAGS = -lfftw3 
-INCLUDE = /usr/local/include/
+FLAGS = -lfftw3 -lnetcdff -lnetcdf
+INCLUDE = /usr/include/
 LIB = /usr/local/lib
 	   
-SOURCES = parameters.f90 variables.f90 state.f90 rhs.f90 dnsbox.f90 
-SOURCESTEST = parameters.f90 variables.f90 state.f90 rhs.f90 test.f90 
+SOURCES = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsbox.f90 
+SOURCESTEST = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 test.f90 
 
 ALL: $(SOURCES)
 	 ${COMPILER} -o dns.x $(SOURCES) -I$(INCLUDE) $(FLAGS) -L$(LIB)

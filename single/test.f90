@@ -2,7 +2,7 @@
 
 program nsbox
     
-    use rhs
+    use io
     real(kind=8) :: a, b
         
     ! Initialize:
@@ -35,6 +35,22 @@ program nsbox
     call copy(a, b)
     
     print *, 'b = ', b
+    
+    call io_save_state()
+    
+    call state_u2utemp()
+    
+    call io_load_state('state0000.nc')
+    
+    do k=1,Nz; do j=1,Ny; do i=1,Nx
+                    
+        temp_r(i, j, k) = utemp(i, j, k) - u(i, j, k)
+        
+    end do; end do; end do                        
+    
+    chg = maxval(abs(temp_r))
+    
+    print *, 'maximum error after save/load: ', chg    
     
     call var_final()
     

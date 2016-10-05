@@ -3,6 +3,7 @@
 program nsbox
     
     use rhs
+    use io
 
     ! Initialize:
     call var_init()
@@ -18,9 +19,10 @@ program nsbox
         call state_init_rand()
     
     else
-    
-        print *, "Load state has not implemented yet"
-        stop
+        
+        call io_load_state('state0000.nc')
+        call state_u2uhat()
+        call state_dealias()
     
     end if
     
