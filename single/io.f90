@@ -9,7 +9,7 @@
     use state
     use netcdf  
 
-    integer(kind=8) :: io_iSaveCount1, io_iSaveCount2   ! save counters
+    integer(kind=8) :: io_save_count   ! save counter
         
     integer,     private  :: io_stats, io_Spec, io_Pars 
     character(4) :: cnum        ! Save count
@@ -28,8 +28,7 @@ contains
     subroutine io_init()
         
         ! Initialize input/output
-        io_iSaveCount1 = 0
-        io_iSaveCount2 = 0        
+        io_save_count = 0
         
         io_Ekin=20
         
@@ -54,7 +53,7 @@ contains
         ! Saves the current state
         !
                    
-        write(cnum,'(I4.4)') io_iSaveCount1
+        write(cnum,'(I4.4)') io_save_count
         print*, ' saving state'//cnum//'.nc  t=', time(n+1)
         
         ! Create a new state file, overwrite the existing one (NF90_ClOBBER)
@@ -88,7 +87,7 @@ contains
         call io_check( nf90_close(ncid) )
         
         
-        io_iSaveCount1 = io_iSaveCount1+1
+        io_save_count = io_save_count + 1
     
     end subroutine io_save_state
     
@@ -124,7 +123,7 @@ contains
         end if
     end subroutine io_check  
 
-    subroutine io_saveStats()
+    subroutine io_save_stats()
         !
         ! Measures some statistics and saves into text files
         !
@@ -140,6 +139,7 @@ contains
         open(io_stats, status='unknown', access='append', file='stats.dat')
         
         print *, ' Saving stats  '
+        print *, 't = ', time(n+1)
         print *, 'Ekin = ', Ekin
         print *, 'Dissipation = ', Disp
         print *, 'Courant = ', Courant
@@ -157,7 +157,7 @@ contains
         
         close(io_stats)
         
-    end subroutine io_saveStats
+    end subroutine io_save_stats
 
     
     subroutine io_Courant()
@@ -176,7 +176,7 @@ contains
         
         call state_spectrum()
        
-        write(cnum,'(I4.4)') io_iSaveCount1
+        write(cnum,'(I4.4)') io_save_count
              
         print *, ' Saving spectrum'
         open(io_Spec, status='unknown', access='append', &

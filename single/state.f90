@@ -119,24 +119,26 @@ module state
             if(kx(i) .eq. 0.0d0 .and. &
                ky(j) .eq. 0.0d0 .and. &
                kz(k) .eq. 0.0d0) then
-               cycle
+               uhat(i, j, k) = 0.0d0
+               vhat(i, j, k) = 0.0d0
+               what(i, j, k) = 0.0d0
             else
                 kk = kx(i) * kx(i) + ky(j) * ky(j) + kz(k) * kz(k)
                 
                 uhat(i, j, k) = uhattemp(i, j, k) &
-                              - kx(k) * kx(k) * uhattemp(i, j, k) / kk &
-                              - kx(k) * ky(j) * vhattemp(i, j, k) / kk &
-                              - kx(k) * kz(i) * whattemp(i, j, k) / kk 
+                              - kx(i) * kx(i) * uhattemp(i, j, k) / kk &
+                              - kx(i) * ky(j) * vhattemp(i, j, k) / kk &
+                              - kx(i) * kz(k) * whattemp(i, j, k) / kk 
                 
                 vhat(i, j, k) = vhattemp(i, j, k) &
-                              - ky(j) * kx(k) * uhattemp(i, j, k) / kk &
+                              - ky(j) * kx(i) * uhattemp(i, j, k) / kk &
                               - ky(j) * ky(j) * vhattemp(i, j, k) / kk &
-                              - ky(j) * kz(i) * whattemp(i, j, k) / kk 
+                              - ky(j) * kz(k) * whattemp(i, j, k) / kk 
                 
                 what(i, j, k) = whattemp(i, j, k) &
-                              - kz(i) * kx(k) * uhattemp(i, j, k) / kk &
-                              - kz(i) * ky(j) * vhattemp(i, j, k) / kk &
-                              - kz(i) * kz(i) * whattemp(i, j, k) / kk 
+                              - kz(k) * kx(i) * uhattemp(i, j, k) / kk &
+                              - kz(k) * ky(j) * vhattemp(i, j, k) / kk &
+                              - kz(k) * kz(k) * whattemp(i, j, k) / kk 
                 
             end if
                                        
@@ -145,7 +147,7 @@ module state
     end subroutine state_project
 
     subroutine state_dealias()
-    ! Set k > 2/3 k_max elements to 0
+    ! Set k >= 2/3 k_max elements to 0
             
         do i=1,Nh; do j=1,Ny; do k=1,Nz 
             
@@ -166,7 +168,7 @@ module state
 
                   uhat(i, j, k) = 0.0d0
                   vhat(i, j, k) = 0.0d0
-                  what(i, j, k) = 0.0d0          
+                  what(i, j, k) = 0.0d0
 
             end if
             
@@ -257,7 +259,7 @@ module state
             end if
             
             ! Find which window current k belongs to:
-            absk = sqrt(kx(k) * kx(k) + ky(j) * ky(j) + kz(i) * kz(i)) ! |k|
+            absk = sqrt(kx(i) * kx(i) + ky(j) * ky(j) + kz(k) * kz(k)) ! |k|
             
             if (absk < real(int(absk / Deltak)) + 0.5 * Deltak) then
                 nk = int(absk / Deltak)
@@ -479,14 +481,14 @@ module state
                     
             utemp(i, j, k) = u(i, j, k) &
                             - (-0.5*( factor*cos(x(i))*sin(y(j))*sin(z(k))&
-                            +sin(x(i))*cos(y(j))*cos(z(k)) )*exp(-(factor**2)*time(Nt+1) * nu))
+                            +sin(x(i))*cos(y(j))*cos(z(k)) )*exp(-(factor**2)*time(n+1) * nu))
                     
             vtemp(i, j, k) = v(i, j, k) &
                             - (0.5*(  factor*sin(x(i))*cos(y(j))*sin(z(k))&
-                            -cos(x(i))*sin(y(j))*cos(z(k)) )*exp(-(factor**2)*time(Nt+1) * nu))
+                            -cos(x(i))*sin(y(j))*cos(z(k)) )*exp(-(factor**2)*time(n+1) * nu))
                     
             wtemp(i, j, k) = w(i, j, k) &
-                            - (cos(x(i))*cos(y(j))*sin(z(k))*exp(-(factor**2)*time(Nt+1) * nu))
+                            - (cos(x(i))*cos(y(j))*sin(z(k))*exp(-(factor**2)*time(n+1) * nu))
                                 
         end do; end do; end do        
 

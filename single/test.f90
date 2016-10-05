@@ -44,13 +44,20 @@ program nsbox
     
     do k=1,Nz; do j=1,Ny; do i=1,Nx
                     
-        temp_r(i, j, k) = utemp(i, j, k) - u(i, j, k)
+        temp_r(i, j, k) = vtemp(i, j, k) - v(i, j, k)
         
     end do; end do; end do                        
     
     chg = maxval(abs(temp_r))
     
     print *, 'maximum error after save/load: ', chg    
+    
+    ! call state_project()
+    call state_uhat2uhattemp()
+    call state_derivatives()
+    call state_divergence()
+    
+    print *, 'maximum divergence: ', divMax
     
     call var_final()
     
