@@ -76,32 +76,28 @@ module rhs
                 phat(i, j, k) = cmplx(0.0d0, 0.0d0)
                     
             else
+                if (bandlim .and. absk .lt. kCutOff) then
+                    nonlinuhat(i, j, k) = nonlinuhat(i, j, k) &
+                                  + (Pin / (2.0d0 * Eband)) * uhattemp(i, j, k)
+                    nonlinvhat(i, j, k) = nonlinvhat(i, j, k) &
+                                  + (Pin / (2.0d0 * Eband)) * vhattemp(i, j, k)
+                    nonlinwhat(i, j, k) = nonlinwhat(i, j, k) &
+                                  + (Pin / (2.0d0 * Eband)) * whattemp(i, j, k)
+                end if
+                
                 phat(i, j, k) = ii * (kx(i) * nonlinuhat(i, j, k) &
                                     + ky(j) * nonlinvhat(i, j, k) & 
                                     + kz(k) * nonlinwhat(i, j, k)) / absk ** 2          
-            
-                ! from n_k(u) to N_k(u)
-                if (bandlim .and. absk .lt. kCutOff) then
-                    nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
-                                          - ii * kx(i) * phat(i, j, k) &
-                                   + (Pin / (2.0d0 * Eband)) * uhattemp(i, j, k)
-                    nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
-                                          - ii * ky(j) * phat(i, j, k) &
-                                   + (Pin / (2.0d0 * Eband)) * vhattemp(i, j, k)  
-                    nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
-                                          - ii * kz(k) * phat(i, j, k) &
-                                   + (Pin / (2.0d0 * Eband)) * whattemp(i, j, k)  
-                else
-                    nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
-                                          - ii * kx(i) * phat(i, j, k) ! &
-                                          ! + Q * uhattemp(i, j, k)
-                    nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
-                                          - ii * ky(j) * phat(i, j, k) ! &
-                                          ! + Q * vhattemp(i, j, k)
-                    nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
-                                          - ii * kz(k) * phat(i, j, k) ! &
-                                          ! + Q * whattemp(i, j, k)
-                end if
+
+                nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
+                                      - ii * kx(i) * phat(i, j, k) ! &
+                                      ! + Q * uhattemp(i, j, k)
+                nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
+                                      - ii * ky(j) * phat(i, j, k) ! &
+                                      ! + Q * vhattemp(i, j, k)
+                nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
+                                      - ii * kz(k) * phat(i, j, k) ! &
+                                      ! + Q * whattemp(i, j, k)
             
             end if
             
