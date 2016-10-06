@@ -30,7 +30,7 @@ contains
         ! Initialize input/output
         io_save_count = 0
         io_Ekin=20
-        io_save_info()
+        call io_save_info()
         
     end subroutine io_init
     
