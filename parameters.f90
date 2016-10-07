@@ -18,7 +18,7 @@ module parameters
     real(kind=4), parameter         :: alpha_x = 1.0d0   ! 2 pi / Lx 
     real(kind=4), parameter         :: alpha_y = 1.0d0   ! 2 pi / Ly
     real(kind=4), parameter         :: alpha_z = 1.0d0   ! 2 pi / Lz
-    real(kind=8), parameter         :: nu = 0.2d0 ! 4.491d-3 ! Kinematic viscosity 
+    real(kind=8), parameter         :: nu = 0.07d0 ! 4.491d-3 ! Kinematic viscosity 
     real(kind=8), parameter         :: Q = 0.5d0 ! 0.0667d0 ! Forcing multiplier ! set to 0 for band-lim
     real(kind=8), parameter         :: kCutOff = 2.0d0 ! 2.5     ! Forcing cut-off frequency
     real(kind=8), parameter         :: Pin = 0.1d0       ! Power input-rate
@@ -47,7 +47,7 @@ module parameters
     real(kind = 8), parameter       :: c = 0.5d0         ! implicitness param.
     logical, parameter              :: spherical = .false.! spherical trunc. 
                                                          ! cubic trunc. if false
-    logical, parameter              :: bandlim = .false. ! if true, band-limited
+    logical, parameter              :: bandlim = .true. ! if true, band-limited
                                                          ! forcing applied
     
     real(kind=8), parameter &

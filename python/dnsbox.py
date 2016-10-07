@@ -12,9 +12,9 @@ global Nx, Ny, Nz, Nt, alphax, alphay, alphaz,\
        analytic, spherical, random, dt
 
 # Simulation parameters:
-Nx = 32            # Spatial discretization
-Ny = 32            # Spatial discretization
-Nz = 32            # Spatial discretization
+Nx = 64            # Spatial discretization
+Ny = 64            # Spatial discretization
+Nz = 64            # Spatial discretization
 iSaveRate1 = 10    # Save state files every iSaveRate1 time steps
 iSaveRate2 = 1     # Save state files every iSaveRate2 time steps
 alphax = 1.0       # Base wave numbers
@@ -27,7 +27,7 @@ CourantMin = 0.15  # Minimum Courant number
 CourantMax = 0.2   # Maximum Courant number
 tStepMax = 0.01    # Maximum time step
 bandlim = True     # Band-limited forcing if true
-kF = 2.0           # wave number cut off for band limited forcing
+kF = 2.5           # wave number cut off for band limited forcing
 epsW = 0.1         # Rate of energy input for band limited forcing
 
 # Logicals

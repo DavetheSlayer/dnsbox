@@ -14,9 +14,11 @@ program nsbox
         temp_r(i, j, k) = u(i, j, k) 
         
     end do; end do; end do                    
-        
-    call state_u2uhat()
-    call state_uhat2u()
+    
+    do n=1,200    
+        call state_u2uhat()
+        call state_uhat2u()
+    end do
     
     do k=1,Nz; do j=1,Ny; do i=1,Nx
                     

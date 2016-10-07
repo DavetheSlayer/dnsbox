@@ -187,7 +187,7 @@ module variables
             kSpec(i) = i * Deltak
         end do
         
-        scalemodes = 1.0d0 / real(Nx * Ny * Nz, kind=8)
+        scalemodes = real(1.0d0, kind=8) / real(Nx * Ny * Nz, kind=8)
         
         print *, 'Setup grid and Fourier frequencies'
         
