@@ -83,6 +83,10 @@ module rhs
         ! Compute nonlinear term of the Navier-Stokes equation 
         ! in rotation form for (u,v,w)hattemp:
         
+        if (bandlim) then
+            call rhsEband()
+        end if
+        
         call rhsDerivatives() 
         call rhsVorticity()
             
@@ -160,7 +164,8 @@ module rhs
                    (ky(j) .eq. cmplx(0.0d0, 0.0d0)) .and. &
                    (kz(i) .eq. cmplx(0.0d0, 0.0d0))) then
                     phat(i, j, k) = 0.0d0                
-                else               
+                else                
+                            
                     phat(i, j, k) = -1.0d0 * (kx(k) * nonlinuhat(i, j, k) &
                                             + ky(j) * nonlinvhat(i, j, k) & 
                                             + kz(i) * nonlinwhat(i, j, k)) & 
@@ -169,7 +174,7 @@ module rhs
                                                + kz(i) * kz(i))
                 end if
                 ! from n_k(u) to N_k(u)
-                if (bandlim .and. absk .lt. kCutOff) then
+                if (bandlim .and. absk .le. kCutOff) then
                     nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
                       - kx(k) * phat(i, j, k) &
                       + (Pin / (2.0d0 * Eband)) * uhattemp(i, j, k)

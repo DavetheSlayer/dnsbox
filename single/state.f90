@@ -10,6 +10,7 @@ module state
     subroutine state_utemp2uhattemp()
         
         ! Forward fft
+        ! Destroys utemp
         call dfftw_execute_(plan_forward_u)
         call dfftw_execute_(plan_forward_v)
         call dfftw_execute_(plan_forward_w)
@@ -18,7 +19,8 @@ module state
     
     subroutine state_uhattemp2utemp()
         
-        ! Forward fft
+        ! Backward fft
+        ! Destroys uhattemp
         call dfftw_execute_(plan_backward_u)
         call dfftw_execute_(plan_backward_v)
         call dfftw_execute_(plan_backward_w)
@@ -54,6 +56,16 @@ module state
         end do; end do; end do
         
     end subroutine state_uhat2uhattemp
+        
+    subroutine state_uhattemp2uhattempp()
+        
+        do i=1,Nh; do j=1,Ny; do k=1,Nz
+            uhattempp(i, j, k) = uhattemp(i, j, k)
+            vhattempp(i, j, k) = vhattemp(i, j, k)
+            whattempp(i, j, k) = whattemp(i, j, k)
+        end do; end do; end do
+        
+    end subroutine state_uhattemp2uhattempp
     
     subroutine state_uhattemp2uhat()
         
@@ -166,9 +178,9 @@ module state
                   (ky(j) .eq. 0.0d0) .and. &
                   (kz(k) .eq. 0.0d0))) then
 
-                  uhat(i, j, k) = 0.0d0
-                  vhat(i, j, k) = 0.0d0
-                  what(i, j, k) = 0.0d0
+                  uhat(i, j, k) = cmplx(0.0d0, 0.0d0, kind = 8)
+                  vhat(i, j, k) = cmplx(0.0d0, 0.0d0, kind = 8)
+                  what(i, j, k) = cmplx(0.0d0, 0.0d0, kind = 8)
 
             end if
             
@@ -291,6 +303,7 @@ module state
             
         end do; end do; end do                       
         
+        call state_project()  ! Make state solenoidal
         ! Back to the configuration space:
         call state_uhat2u()
     
@@ -348,66 +361,57 @@ module state
     
         ! Derivative of u with respect to x, y, z:
         do i=1,Nh; do j=1,Ny; do k=1,Nz
-            temp_c(i, j, k) = uhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kx(i) &
-                            * scalemodes
+            temp_c(i, j, k) = uhattemp(i, j, k) * ii * kx(i) * scalemodes
         end do; end do; end do
         call dfftw_execute_(plan_backward_temp)
         call state_copy_conf(temp_r, ux)
         
         do i=1,Nh; do j=1,Ny; do k=1,Nz
-            temp_c(i, j, k) = uhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * ky(j) &
-                            * scalemodes
+            temp_c(i, j, k) = uhattemp(i, j, k) * ii * ky(j) * scalemodes
         end do; end do; end do
         call dfftw_execute_(plan_backward_temp)
         call state_copy_conf(temp_r, uy)
                 
         do i=1,Nh; do j=1,Ny; do k=1,Nz
-            temp_c(i, j, k) = uhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kz(k) &
-                            * scalemodes
+            temp_c(i, j, k) = uhattemp(i, j, k) * ii * kz(k) * scalemodes
         end do; end do; end do
         call dfftw_execute_(plan_backward_temp)
         call state_copy_conf(temp_r, uz)
 
         ! Derivative of v with respect to x, y, z:
         do i=1,Nh; do j=1,Ny; do k=1,Nz
-            temp_c(i, j, k) = vhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kx(i) &
-                            * scalemodes
+            temp_c(i, j, k) = vhattemp(i, j, k) * ii * kx(i) * scalemodes
         end do; end do; end do
         call dfftw_execute_(plan_backward_temp)
         call state_copy_conf(temp_r, vx)
         
         do i=1,Nh; do j=1,Ny; do k=1,Nz
-            temp_c(i, j, k) = vhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * ky(j) &
-                            * scalemodes
+            temp_c(i, j, k) = vhattemp(i, j, k) * ii * ky(j) * scalemodes
         end do; end do; end do
         call dfftw_execute_(plan_backward_temp)
         call state_copy_conf(temp_r, vy)
                 
         do i=1,Nh; do j=1,Ny; do k=1,Nz
-            temp_c(i, j, k) = vhattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kz(k) &
-                            * scalemodes
+            temp_c(i, j, k) = vhattemp(i, j, k) * ii * kz(k) * scalemodes
         end do; end do; end do
         call dfftw_execute_(plan_backward_temp)
         call state_copy_conf(temp_r, vz)
            
         ! Derivative of w with respect to x, y, z:
         do i=1,Nh; do j=1,Ny; do k=1,Nz
-            temp_c(i, j, k) = whattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kx(i) &
-                            * scalemodes
+            temp_c(i, j, k) = whattemp(i, j, k) * ii * kx(i) * scalemodes
         end do; end do; end do
         call dfftw_execute_(plan_backward_temp)
         call state_copy_conf(temp_r, wx)
         
         do i=1,Nh; do j=1,Ny; do k=1,Nz
-            temp_c(i, j, k) = whattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * ky(j) &
-                            * scalemodes
+            temp_c(i, j, k) = whattemp(i, j, k) * ii * ky(j) * scalemodes
         end do; end do; end do
         call dfftw_execute_(plan_backward_temp)
         call state_copy_conf(temp_r, wy)
                 
         do i=1,Nh; do j=1,Ny; do k=1,Nz
-            temp_c(i, j, k) = whattemp(i, j, k) * cmplx(0.0d0, 1.0d0) * kz(k) &
-                            * scalemodes
+            temp_c(i, j, k) = whattemp(i, j, k) * ii * kz(k) * scalemodes
         end do; end do; end do
         call dfftw_execute_(plan_backward_temp)
         call state_copy_conf(temp_r, wz)

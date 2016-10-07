@@ -13,9 +13,9 @@ module parameters
     integer(kind=4), parameter      :: Ny = 64           ! 256
     integer(kind=4), parameter      :: Nz = 64           ! 256
     integer(kind=4), parameter      :: Nh = Nx/2 + 1     ! Real fft, x dimension
-    integer(kind=4), parameter      :: Nt = 100000          ! Number of t-steps
-    integer(kind=4), parameter      :: iSaveRate1 = 1000   ! save rate for state files
-    integer(kind=4), parameter      :: iSaveRate2 = 10    ! save rate for analysis files
+    integer(kind=4), parameter      :: Nt = 100000        ! Number of t-steps
+    integer(kind=4), parameter      :: iSaveRate1 = 1000 ! save rate for state files
+    integer(kind=4), parameter      :: iSaveRate2 = 10  ! save rate for analysis files
     real(kind=4), parameter         :: alpha_x = 1.0d0   ! 2 pi / Lx 
     real(kind=4), parameter         :: alpha_y = 1.0d0   ! 2 pi / Ly
     real(kind=4), parameter         :: alpha_z = 1.0d0   ! 2 pi / Lz

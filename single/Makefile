@@ -1,10 +1,10 @@
 COMPILER =  gfortran
 
-COMPFLAGS = -ffree-line-length-none -x f95-cpp-input
-FLAGS = -O4 -lfftw3 -lm -lnetcdff -lnetcdf
+COMPFLAGS = 
+FLAGS = -lfftw3 -lm -lnetcdff -lnetcdf
 INCLUDE = /usr/include/
-LIB = /usr/local/lib
-#LIB = /usr/lib
+#LIB = /usr/local/lib
+LIB = /usr/lib
 	   
 SOURCES = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsbox.f90 
 SOURCESTEST = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 test.f90 

@@ -24,6 +24,9 @@ module variables
                                                         uhattemp, &
                                                         vhattemp, &
                                                         whattemp, &
+                                                        uhattempp, &
+                                                        vhattempp, &
+                                                        whattempp, &
                                                         nonlinuhat, &
                                                         nonlinvhat, &
                                                         nonlinwhat, &
@@ -124,6 +127,9 @@ module variables
                   uhattemp(1:Nh, 1:Ny, 1:Nz), &
                   vhattemp(1:Nh, 1:Ny, 1:Nz), &
                   whattemp(1:Nh, 1:Ny, 1:Nz), &
+                  uhattempp(1:Nh, 1:Ny, 1:Nz), &
+                  vhattempp(1:Nh, 1:Ny, 1:Nz), &
+                  whattempp(1:Nh, 1:Ny, 1:Nz), &
                   nonlinuhat(1:Nh, 1:Ny, 1:Nz), &
                   nonlinvhat(1:Nh, 1:Ny, 1:Nz), &
                   nonlinwhat(1:Nh, 1:Ny, 1:Nz), &

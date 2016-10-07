@@ -90,7 +90,7 @@ program nsbox
             
         end do; end do; end do
         
-        call state_project()
+        ! call state_project()
                 
         time(n+1) = time(n) + dt
         

@@ -430,7 +430,7 @@ def timeStep(Nt):
         vhat = vhat + dt * nonlinvhat * 0.5
         what = what + dt * nonlinwhat * 0.5
 
-        project()  # Apply projection operator to ensure div-free
+        # project()  # Apply projection operator to ensure div-free
 
         uhattemp = np.copy(uhat)
         vhattemp = np.copy(vhat)

@@ -1,13 +1,16 @@
-COMPILER =  /mnt/nfs/clustersw/jessie/openmpi-2.0.1/bin/mpif90 
+COMPILER =  /cluster/home/nbudanur/local2/bin/mpif90 
+COMPFLAGS	= -ffree-line-length-none -x f95-cpp-input -c -O4 \
+			  -DGNU -DMEASURE -DSTRIDE1 -DFFTW \
+			  -I/cluster/home/nbudanur/local2/include/
 
-FLAGS = -DGNU -DMEASURE -DSTRIDE1 -DFFTW -I/cluster/home/nbudanur/local4/include/ -g -O2
+MODSOBJ = parameters.o variables.o state.o rhs.o io.o
 
-LIBS = /cluster/home/nbudanur/local4/lib/libp3dfft.a \
-	   /mnt/nfs/clustersw/jessie/fftw-3.3.4/lib/libfftw3.a \
-	   /clusterhome/nbudanur/local4/lib/libhdf5hl_fortran.a \
-	   /clusterhome/nbudanur/local4/lib/libhdf5_hl.a \
-	   /clusterhome/nbudanur/local4/lib/libhdf5_fortran.a \
-	   /clusterhome/nbudanur/local4/lib/libhdf5.a -lz -ldl
+LIBS = /cluster/home/nbudanur/local2/lib/libp3dfft.a \
+	   /cluster/home/nbudanur/local2/lib/libfftw3.a \
+	   /clusterhome/nbudanur/local2/lib/libhdf5hl_fortran.a \
+	   /clusterhome/nbudanur/local2/lib/libhdf5_hl.a \
+	   /clusterhome/nbudanur/local2/lib/libhdf5_fortran.a \
+	   /clusterhome/nbudanur/local2/lib/libhdf5.a -lz -ldl
 	   
 SOURCES = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboxheun.f90 
 SOURCESHEUN = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboxheun.f90 
@@ -16,8 +19,12 @@ SOURCESIMP = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 dnsboximplici
 SOURCESADJ = parameters.f90 variablesAdj.f90 state.f90 rhsAdj.f90 io.f90 dnsboxAdj.f90 
 SOURCESPOST = parameters.f90 variables.f90 state.f90 rhs.f90 io.f90 post.f90 
 
-ALL: $(SOURCES)
-	 ${COMPILER} -o dns.x $(FLAGS) $(SOURCES) $(LIBS)
+all: $(MODSOBJ) dnsboxheun.f90
+	$(COMPILER) $(COMPFLAGS) dnsboxheun.f90
+	$(COMPILER) -o ./dns.x dnsboxheun.o $(MODSOBJ) $(FLAGS) $(LIBS)
+
+#ALL: $(SOURCES)
+#	 ${COMPILER} -o dns.x $(FLAGS) $(SOURCES) $(LIBS)
 
 clean:
 	rm -f *.o
@@ -37,3 +44,19 @@ band: $(SOURCESBAND)
 
 imp: $(SOURCESIMP)
 	 ${COMPILER} -o dns.x $(FLAGS) $(SOURCESIMP) $(LIBS)
+
+#------------------------------------------------------------------------------
+parameters.o : parameters.f90 
+	$(COMPILER) $(COMPFLAGS) parameters.f90
+
+variables.o : variables.f90 parameters.o
+	$(COMPILER) $(COMPFLAGS) variables.f90
+
+state.o: state.f90 variables.o
+	$(COMPILER) $(COMPFLAGS) state.f90
+
+rhs.o: rhs.f90 variables.o
+	$(COMPILER) $(COMPFLAGS) rhs.f90
+
+io.o : io.f90 state.o rhs.o
+	$(COMPILER) $(COMPFLAGS) io.f90

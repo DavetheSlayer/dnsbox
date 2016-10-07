@@ -15,8 +15,10 @@ module rhs
         if (bandlim) then
             call rhs_Eband()
         end if
+        
+        call state_uhattemp2uhattempp() ! back up 
             
-        ! Configuration space velocity fields fields:
+        ! Configuration space velocity fields:
         call state_uhattemp2utemp() ! Now has a factor N^3
         
         do i=1,Nx; do j=1,Ny; do k=1,Nz
@@ -70,10 +72,10 @@ module rhs
                   (ky(j) .eq. 0.0d0) .and. &
                   (kz(k) .eq. 0.0d0))) then
 
-                nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0)
-                nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0)
-                nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0)          
-                phat(i, j, k) = cmplx(0.0d0, 0.0d0)
+                nonlinuhat(i, j, k) = cmplx(0.0d0, 0.0d0, kind = 8)
+                nonlinvhat(i, j, k) = cmplx(0.0d0, 0.0d0, kind = 8)
+                nonlinwhat(i, j, k) = cmplx(0.0d0, 0.0d0, kind = 8)          
+                phat(i, j, k) = cmplx(0.0d0, 0.0d0, kind = 8)
                     
             else
                 
@@ -81,17 +83,26 @@ module rhs
                                     + ky(j) * nonlinvhat(i, j, k) & 
                                     + kz(k) * nonlinwhat(i, j, k)) / absk ** 2          
                 
-                if (bandlim .and. absk .le. kCutOff) then
+                if (bandlim .and. absk .lt. kCutOff) then
                 
                     nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
                                           - ii * kx(i) * phat(i, j, k)  &
-                                          + (Pin / (2.0d0 * Eband)) * uhattemp(i, j, k)
+                                          + (Pin / (2.0d0 * Eband)) * uhattempp(i, j, k)
                     nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
                                           - ii * ky(j) * phat(i, j, k) &
-                                          + (Pin / (2.0d0 * Eband)) * vhattemp(i, j, k)
+                                          + (Pin / (2.0d0 * Eband)) * vhattempp(i, j, k)
                     nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
                                           - ii * kz(k) * phat(i, j, k) &
-                                          + (Pin / (2.0d0 * Eband)) * whattemp(i, j, k)
+                                          + (Pin / (2.0d0 * Eband)) * whattempp(i, j, k)
+                
+                else
+                    
+                    nonlinuhat(i, j, k) = - nonlinuhat(i, j, k) &
+                                          - ii * kx(i) * phat(i, j, k) 
+                    nonlinvhat(i, j, k) = - nonlinvhat(i, j, k) &
+                                          - ii * ky(j) * phat(i, j, k) 
+                    nonlinwhat(i, j, k) = - nonlinwhat(i, j, k) &
+                                          - ii * kz(k) * phat(i, j, k) 
                 
                 end if
                 
@@ -105,24 +116,24 @@ module rhs
         
         ! Compute total energy in the input band
         real(kind=8) :: scalex   !scaling to avoid counting kx=0 modes twice
-        Eband = 0d0
+        Eband = real(0.0d0, kind=8)
         
         do i=1,Nh; do j=1,Ny; do k=1,Nz
 !            print *, k
             absk = sqrt(kx(i) * kx(i) + ky(j) * ky(j) + kz(k) * kz(k)) ! |k|
                
-            if (absk .gt. kCutOff) cycle
+            if (absk .ge. kCutOff) cycle
 
-            if (kx(i).eq. 0.0d0) then              
-                scalex = 0.5d0
+            if (kx(i).eq. real(0.0d0, kind=8)) then              
+                scalex = real(0.5d0, kind=8)
             else 
-                scalex = 1.0d0 
+                scalex = real(1.0d0, kind=8) 
             end if
             
             Eband = Eband &
-                  + (real(conjg(uhattemp(i, j, k)) * uhattemp(i, j, k))  &
-                   + real(conjg(vhattemp(i, j, k)) * vhattemp(i, j, k))  &
-                   + real(conjg(whattemp(i, j, k)) * whattemp(i, j, k))) &
+            + (real(conjg(uhattemp(i, j, k)) * uhattemp(i, j, k), kind=8)  &
+             + real(conjg(vhattemp(i, j, k)) * vhattemp(i, j, k), kind=8)  &
+             + real(conjg(whattemp(i, j, k)) * whattemp(i, j, k), kind=8)) &
                   * scalex * (scalemodes ** 2)
             
         end do; end do; end do   

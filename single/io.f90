@@ -164,10 +164,9 @@ contains
         !*****************!
         ! Courant number: !
         !*****************!
-        Courant = maxval(abs(u)) * dt / (Lx / real(Nx, kind(0d0))) &
-                + maxval(abs(v)) * dt / (Ly / real(Ny, kind(0d0))) &
-                + maxval(abs(w)) * dt / (Lz / real(Nz, kind(0d0)))
-
+        Courant = maxval(abs(u)) * dt / (Lx / real(Nx, kind = 8)) &
+                + maxval(abs(v)) * dt / (Ly / real(Ny, kind = 8)) &
+                + maxval(abs(w)) * dt / (Lz / real(Nz, kind = 8))
 
     end subroutine io_Courant  
 

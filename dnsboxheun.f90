@@ -24,8 +24,6 @@ program nsbox
         print *, 'Run notes: using rotational form'
     endif
     
-    
-    
     if( initrand ) then 
         
         ! Generate a random initial state

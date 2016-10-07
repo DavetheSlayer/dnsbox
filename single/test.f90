@@ -15,7 +15,7 @@ program nsbox
         
     end do; end do; end do                    
     
-    do n=1,200    
+    do n=1,10    
         call state_u2uhat()
         call state_uhat2u()
     end do
@@ -60,6 +60,14 @@ program nsbox
     call state_divergence()
     
     print *, 'maximum divergence: ', divMax
+    
+    if (kx(1) .eq. 0.0d0) then
+        print *, 'kx(1) = 0'
+    end if
+    
+    if (kx(1) .eq. real(0.0d0, kind=8)) then
+        print *, 'kx(1) .eq. (0.0d0, kind=8)'
+    end if
     
     call var_final()
     
