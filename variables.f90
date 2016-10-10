@@ -42,7 +42,6 @@ module variables
                                                              temp_c, &
                                                              intFact, &
                                                              phat
-    ! real(p3dfft_type), dimension(:,:,:), allocatable    :: realtemp
     ! extraneous variables, for easy code reading:
     real(kind = 8) :: Lx, Ly, Lz
         
@@ -91,6 +90,9 @@ module variables
     real(kind = 8) :: EOne       ! Energy contained in k=1
     real(kind = 8) :: myEsqrt2     ! Energy contained in k=sqrt(2)
     real(kind = 8) :: Esqrt2       ! Energy contained in k=sqrt(2)
+    
+    real(kind = 8) :: myError     ! For tests
+    real(kind = 8) :: maxError    ! For tests
     
     contains
     

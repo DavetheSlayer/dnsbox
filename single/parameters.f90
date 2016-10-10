@@ -9,9 +9,9 @@ module parameters
 
     implicit none
     !simulation parameters:
-    integer(kind=4), parameter      :: Nx = 64           ! 256
-    integer(kind=4), parameter      :: Ny = 64           ! 256
-    integer(kind=4), parameter      :: Nz = 64           ! 256
+    integer(kind=4), parameter      :: Nx = 32           ! 256
+    integer(kind=4), parameter      :: Ny = 32           ! 256
+    integer(kind=4), parameter      :: Nz = 32           ! 256
     integer(kind=4), parameter      :: Nh = Nx/2 + 1     ! Real fft, x dimension
     integer(kind=4), parameter      :: Nt = 100000        ! Number of t-steps
     integer(kind=4), parameter      :: iSaveRate1 = 1000 ! save rate for state files
@@ -19,7 +19,7 @@ module parameters
     real(kind=4), parameter         :: alpha_x = 1.0d0   ! 2 pi / Lx 
     real(kind=4), parameter         :: alpha_y = 1.0d0   ! 2 pi / Ly
     real(kind=4), parameter         :: alpha_z = 1.0d0   ! 2 pi / Lz
-    real(kind=8), parameter         :: nu = 0.07d0       ! Kinematic viscosity 
+    real(kind=8), parameter         :: nu = 0.055d0       ! Kinematic viscosity 
     real(kind=8), parameter         :: Q = 0.0d0         ! Forcing multiplier ! set to 0 for band-lim
     real(kind=8), parameter         :: kCutOff = 2.5d0   ! 2.5     ! Forcing cut-off frequency
     real(kind=8), parameter         :: Pin = 0.1d0       ! Power input-rate

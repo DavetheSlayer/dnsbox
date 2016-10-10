@@ -12,7 +12,7 @@ program nsbox
     use io
     
     ! Initialize:
-    call initMpi()
+    call init_mpi()
     call var_init()
     call io_init()
     
@@ -28,46 +28,38 @@ program nsbox
         
         ! Generate a random initial state
 !        call stateInitRand()
-        call stateInitRandConf()
+        call state_init_rand()
         
     elseif ( analytic ) then 
         
         ! Set the analytic solution as initial condition
-        call stateInitAnalytic()
+        call state_init_analytic()
         
     elseif ( eig ) then 
         
         ! Set the eigenvector as initial condition
-        call stateInitEig()
-        
+        ! call stateInitEig()
+        if(proc_id .eq. 0) then 
+            print *, 'Eigenvector initiation is not implemented.'
+        endif        
+
     else
         ! Load initial state:
-        call io_loadState('state0000.h5')
+        call io_load_state('state0000.h5')
     end if
-
-    call p3dfft_ftran_r2c (u, uhat, 'fft')
-    call p3dfft_ftran_r2c (v, vhat, 'fft')
-    call p3dfft_ftran_r2c (w, what, 'fft')
-
-    call stateDealias()
-    call stateProject()
     
-    ! copy uhat -> uhatold and uhattemp
-    do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-        
-        uhattemp(i, j, k) = uhat(i, j, k)
-        vhattemp(i, j, k) = vhat(i, j, k)
-        whattemp(i, j, k) = what(i, j, k)
-        
-        uhatold(i, j, k) = uhat(i, j, k)
-        vhatold(i, j, k) = vhat(i, j, k)
-        whatold(i, j, k) = what(i, j, k)
-        
-    end do; end do; end do
+    ! Transform to Fourier space
+    call state_u2uhat()
     
-    call io_saveSpectrum()
-    call io_saveStats()
-    call io_saveState()
+    call state_dealias()
+    call state_project()
+    
+    ! copy uhat -> uhattemp
+    call state_uhat2uhattemp()  
+    
+    call io_save_spectrum()
+    call io_save_stats()
+    call io_save_state()
     
     if(proc_id .eq. 0) then 
         print *, 'Starting time-stepping'
@@ -75,9 +67,9 @@ program nsbox
     
     
     if (tStepFix) then
-        call rhsIntFact() ! compute integration factor    
+        call rhs_int_fact() ! compute integration factor    
     else 
-        call setTimeStep()
+        call set_time_step()
     end if
     
     open (99, file='RUNNING')
@@ -90,40 +82,39 @@ program nsbox
     n = n + 1
         
         ! compute the nonlinear term for uhattemp:
-        call rhsNonlinear()
-        
+        call rhs_nonlinear()
+
         ! Predictor
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
             
             ! Predicted next step for corrector calculation:
             uhattemp(i, j, k) = intFact(i, j, k) &
-                              * (uhatold(i, j, k) + dt * nonlinuhat(i, j, k))
+                              * (uhat(i, j, k) + dt * nonlinuhat(i, j, k))
             
             ! Contribution to the final step from the predictor calculation:
             uhat(i, j, k) = intFact(i, j, k) &
-                          * (uhatold(i, j, k) &
-                             + dt * nonlinuhat(i, j, k) * 0.5)
+                          * (uhat(i, j, k) + dt * nonlinuhat(i, j, k) * 0.5)
             
             ! Predicted next step for corrector calculation:
             vhattemp(i, j, k) = intFact(i, j, k) &
-                              * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k))
+                              * (vhat(i, j, k) + dt * nonlinvhat(i, j, k))
             
             ! Contribution to the final step from the predictor calculation:
             vhat(i, j, k) = intFact(i, j, k) &
-                          * (vhatold(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5)
+                          * (vhat(i, j, k) + dt * nonlinvhat(i, j, k) * 0.5)
                         
             ! Predicted next step for corrector calculation:
             whattemp(i, j, k) = intFact(i, j, k) &
-                              * (whatold(i, j, k) + dt * nonlinwhat(i, j, k))
+                              * (what(i, j, k) + dt * nonlinwhat(i, j, k))
             
             ! Contribution to the final step from the predictor calculation:
             what(i, j, k) = intFact(i, j, k) &
-                          * (whatold(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5)
+                          * (what(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5)
                         
         end do; end do; end do    
         
         ! compute the nonlinear term for uhattemp:
-        call rhsNonlinear()
+        call rhs_nonlinear()
         
         ! Corrector
         do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
@@ -133,24 +124,7 @@ program nsbox
             what(i, j, k) = what(i, j, k) + dt * nonlinwhat(i, j, k) * 0.5
                         
         end do; end do; end do    
-        
-        ! Project
-        call stateProject()
-        call stateDealias()
-        
-        ! Copy everything        
-        do k=fstart(3),fend(3); do j=fstart(2),fend(2); do i=fstart(1),fend(1)
-
-            uhattemp(i, j, k) = uhat(i, j, k)
-            vhattemp(i, j, k) = vhat(i, j, k)
-            whattemp(i, j, k) = what(i, j, k)
-            
-            uhatold(i, j, k) = uhat(i, j, k) 
-            vhatold(i, j, k) = vhat(i, j, k) 
-            whatold(i, j, k) = what(i, j, k) 
-        
-        end do; end do; end do    
-
+ 
         time(n+1) = time(n) + dt
        
         if (proc_id.eq.0) then
@@ -160,25 +134,19 @@ program nsbox
         if(modulo(n,iSaveRate1)==0) then
                 
             ! Back to the configuration space:
-            call p3dfft_btran_c2r (uhat, u, 'tff')
-            call p3dfft_btran_c2r (vhat, v, 'tff')
-            call p3dfft_btran_c2r (what, w, 'tff')
+            call state_uhat2u()  ! messes up uhattemp!!!
             
-            do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
-                
-                u(i, j, k) = u(i, j, k) * scalemodes
-                v(i, j, k) = v(i, j, k) * scalemodes
-                w(i, j, k) = w(i, j, k) * scalemodes
-                
-            end do; end do; end do
-
-            call io_saveSpectrum()
-            call io_saveState()
+            call io_save_spectrum()
+            call io_save_state()
         end if
-        
+               
+        ! Copy uhat2uhattemp for the next step        
+        call state_uhat2uhattemp()
+                
         if(modulo(n,iSaveRate2)==0) then
-            call io_saveStats()
+            call io_save_stats()
         end if
+
                 
         ! Terminate if maximum time steps are reached or the Courant number 
         ! exceeds the allowed limit:
@@ -186,7 +154,7 @@ program nsbox
            ((Courant .gt. CourantMax) .or. &
             (Courant .lt. CourantMin .and. dt .lt. tStepMax))) then
             ! Courant number outside the desired range, change the time step:
-            call setTimeStep()
+            call set_time_step()
             
         else if (tStepFix .and. Courant .gt. CourantMax) then
             ! Courant number exceeded maximum allowed value, terminate the run:
@@ -200,8 +168,8 @@ program nsbox
             if(running_exist) close(99, status='delete')
             
             ! Save final state and spectrum:
-            call io_saveSpectrum()
-            call io_saveState()
+            call io_save_spectrum()
+            call io_save_state()
         
         else if (n .eq. Nt) then
             if (proc_id.eq.0) then
@@ -214,13 +182,17 @@ program nsbox
             if(running_exist) close(99, status='delete')
             
             ! Save final state and spectrum:
-            call io_saveSpectrum()
-            call io_saveState()
+            call io_save_spectrum()
+            call io_save_state()
         end if
         
         inquire(file='RUNNING', exist=running_exist)
             
     end do
+    
+    if(analytic) then
+        call state_check_error()
+    end if
     
 	deallocate(x, y, z, time, mychg, allchg, kSpec, myEspec, Espec, &
                u, v, w, ux, uy, uz, vx, vy, vz, wx, wy, wz, &
@@ -243,16 +215,16 @@ program nsbox
         
 contains
 
-subroutine initMpi()
+subroutine init_mpi()
     
     !initialize mpi:
     call mpi_init (ierr)
     call mpi_comm_size (mpi_comm_world, nproc, ierr)
     call mpi_comm_rank (mpi_comm_world, proc_id, ierr)
 
-end subroutine initMpi
+end subroutine init_mpi
 
-subroutine setTimeStep()
+subroutine set_time_step()
     ! Change the time-step such that the Courant number is set to 
     ! (CourantMin+CourantMax)/2
     ! This subroutine should be called after the stats are computed
@@ -263,7 +235,7 @@ subroutine setTimeStep()
         dt = tStepMax
     end if
     
-    call rhsIntFact() ! Recompute the integration factor with the new time step
+    call rhs_int_fact() ! Recompute the integration factor with the new time step
     call io_Courant()
 	if (proc_id.eq.0) then
 		print *,'time step set to', dt
@@ -271,6 +243,6 @@ subroutine setTimeStep()
 	end if
     
         
-end subroutine setTimeStep
+end subroutine set_time_step
 
 end program nsbox

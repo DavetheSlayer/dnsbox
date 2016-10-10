@@ -26,6 +26,11 @@ all: $(MODSOBJ) dnsboxheun.f90
 #ALL: $(SOURCES)
 #	 ${COMPILER} -o dns.x $(FLAGS) $(SOURCES) $(LIBS)
 
+test: $(MODSOBJ) test.f90
+	$(COMPILER) $(COMPFLAGS) test.f90
+	$(COMPILER) -o ./test.x test.o $(MODSOBJ) $(FLAGS) $(LIBS)
+ 
+
 clean:
 	rm -f *.o
 	rm -f *.mod

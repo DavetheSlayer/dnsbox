@@ -93,11 +93,11 @@ contains
         if (proc_id.eq.0) then
             print *,'Saving the final state'
         end if        
-        call io_saveState()
+        call io_save_state()
         
     end subroutine io_finalize
     
-    subroutine io_saveState()
+    subroutine io_save_state()
         !
         ! Saves the current state
         ! Based on:
@@ -275,7 +275,7 @@ contains
         
         io_iSaveCount1 = io_iSaveCount1 + 1
     
-    end subroutine io_saveState
+    end subroutine io_save_state
     
     subroutine io_saveVorticity()
         !
@@ -452,7 +452,7 @@ contains
         
     end subroutine io_saveVorticity    
     
-    subroutine io_loadState(stateName)
+    subroutine io_load_state(stateName)
         !
         ! loads the stateName
         ! Based on:
@@ -623,19 +623,19 @@ contains
         ! 
         call h5fclose_f(io_file_id, io_error)
         
-    end subroutine io_loadState
+    end subroutine io_load_state
 
-    subroutine io_saveStats()
+    subroutine io_save_stats()
         !
         ! Measures some statistics and saves into text files
         !
-        call stateEkinetic()
+        call state_kinetic()
         
         call io_Courant()
         
-        call io_Dissipation()
+        call state_dissipation()
         
-        call stateDivergence()
+        call state_divergence()
         
         if(proc_id.eq.0) then
             print *, ' Saving stats  '
@@ -658,37 +658,8 @@ contains
                                         Eband            ! Energy of power-band
         end if 
     
-    end subroutine io_saveStats
+    end subroutine io_save_stats
 
-    
-    subroutine io_Dissipation()
-        
-        !*******************!
-        ! Dissipation rate: !
-        !*******************!        
-        call rhsDerivatives() ! Compute derivatives for dissipation calculation
-        
-        myDisp = 0d0
-        do k=istart(3),iend(3); do j=istart(2),iend(2); do i=istart(1),iend(1)
-            
-            myDisp = myDisp + ux(i, j, k) * ux(i, j, k) &
-                            + uy(i, j, k) * uy(i, j, k) &
-                            + uz(i, j, k) * uz(i, j, k) &
-                            + vx(i, j, k) * vx(i, j, k) &
-                            + vy(i, j, k) * vy(i, j, k) &
-                            + vz(i, j, k) * vz(i, j, k) &
-                            + wx(i, j, k) * wx(i, j, k) &
-                            + wy(i, j, k) * wy(i, j, k) &
-                            + wz(i, j, k) * wz(i, j, k) 
-                            
-        end do; end do; end do        
-        
-        myDisp = myDisp * nu * scalemodes
-
-        call mpi_allreduce(myDisp, Disp, 1, mpi_double_precision, &
-                           mpi_sum, mpi_comm_world, ierr)                             
-        
-    end subroutine io_Dissipation
     
     subroutine io_Courant()
         
@@ -706,9 +677,9 @@ contains
     
     
 
-    subroutine io_saveSpectrum()
+    subroutine io_save_spectrum()
         
-        call stateComputeSpectrum()
+        call state_spectrum()  ! Compute spectrum
        
         if(proc_id.eq.0) then
         
@@ -728,7 +699,7 @@ contains
         
         end if
             
-    end subroutine io_saveSpectrum
+    end subroutine io_save_spectrum
     
     subroutine io_saveInfo()
         ! Save parameters
